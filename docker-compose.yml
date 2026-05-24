@@ -1,0 +1,81 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: locus_postgres
+    environment:
+      POSTGRES_DB: locus_agents_dev
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - locus_network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: locus_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - locus_network
+
+  # Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: locus_backend
+    environment:
+      NODE_ENV: development
+      PORT: 5000
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/locus_agents_dev
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: your_super_secret_jwt_key_change_this
+      LOCUS_API_KEY: ${LOCUS_API_KEY}
+      LOCUS_API_SECRET: ${LOCUS_API_SECRET}
+      LOCUS_WEBHOOK_SECRET: ${LOCUS_WEBHOOK_SECRET}
+      ETHEREUM_RPC_URL: ${ETHEREUM_RPC_URL}
+      FRONTEND_URL: http://localhost:3000
+      API_URL: http://localhost:5000
+    ports:
+      - "5000:5000"
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    networks:
+      - locus_network
+
+  # Frontend (Next.js) - Optional in Docker
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: locus_frontend
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:5000/api
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    networks:
+      - locus_network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  locus_network:
+    driver: bridge
