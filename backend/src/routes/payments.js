@@ -22,6 +22,7 @@ function getManualPaymentReceiver() {
 /**
  * Grant access after a completed payment (purchase or subscription).
  * For subscriptions, creates/updates a Subscription row.
+ * For rentals, creates a subscription with an endDate.
  * Updates creator totalEarnings.
  */
 async function grantAccess(payment) {
@@ -32,19 +33,27 @@ async function grantAccess(payment) {
     await receiver.update({ totalEarnings: (current + parseFloat(payment.amount)).toFixed(8) });
   }
 
-  // For subscriptions, create a Subscription record
-  if (payment.paymentType === 'subscription') {
+  // For subscriptions or rentals, create a Subscription record
+  if (payment.paymentType === 'subscription' || payment.paymentType === 'rental') {
     const existing = await Subscription.findOne({
       where: { userId: payment.payerId, agentId: payment.agentId, status: 'active' },
     });
     if (!existing) {
+      const endDate = new Date();
+      if (payment.paymentType === 'rental' && payment.rentalDays) {
+        endDate.setDate(endDate.getDate() + payment.rentalDays);
+      } else {
+        endDate.setDate(endDate.getDate() + 30); // Default 30 days
+      }
+
       await Subscription.create({
         userId: payment.payerId,
         agentId: payment.agentId,
         monthlyCost: payment.amount,
         status: 'active',
         autoRenew: false,
-        endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        startDate: new Date(),
+        endDate,
       });
     }
   }
@@ -243,7 +252,7 @@ router.post('/initiate', authenticateToken, async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 router.post('/manual/initiate', authenticateToken, async (req, res) => {
   try {
-    const { agentId, amount, paymentType = 'purchase' } = req.body;
+    const { agentId, amount, paymentType = 'purchase', rentalDays } = req.body;
     const agent = await Agent.findByPk(agentId);
     const payer = await User.findByPk(req.user.userId);
 
@@ -261,6 +270,7 @@ router.post('/manual/initiate', authenticateToken, async (req, res) => {
       agentId: agent.id,
       amount,
       paymentType,
+      rentalDays: paymentType === 'rental' ? rentalDays : null,
       status: 'pending',
       metadata: {
         manual: true,

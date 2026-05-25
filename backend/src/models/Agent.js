@@ -81,6 +81,11 @@ const Agent = sequelize.define('Agent', {
     allowNull: false,
     defaultValue: 0,
   },
+  accessType: {
+    type: DataTypes.ENUM('free', 'paid'),
+    allowNull: false,
+    defaultValue: 'paid',
+  },
 }, {
   tableName: 'agents',
 });

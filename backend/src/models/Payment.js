@@ -24,8 +24,12 @@ const Payment = sequelize.define('Payment', {
     allowNull: false,
   },
   paymentType: {
-    type: DataTypes.ENUM('purchase', 'subscription', 'pay_per_use', 'fork_royalty'),
+    type: DataTypes.ENUM('purchase', 'subscription', 'pay_per_use', 'fork_royalty', 'rental'),
     allowNull: false,
+  },
+  rentalDays: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
   },
   transactionHash: {
     type: DataTypes.STRING,

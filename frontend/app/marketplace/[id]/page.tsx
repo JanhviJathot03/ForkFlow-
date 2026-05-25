@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { agents as agentsApi, payments, execute, reviews as reviewsApi, ai } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
+import { BuyRentModal } from '@/components/payments/BuyRentModal';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface Agent {
@@ -83,6 +84,7 @@ export default function AgentDetailPage() {
   const [loading, setLoading] = useState(true);
   const [hasAccess, setHasAccess] = useState(false);
   const [accessVia, setAccessVia] = useState<string | null>(null);
+  const [buyRentModalOpen, setBuyRentModalOpen] = useState(false);
 
   // Payment state
   const [paymentLoading, setPaymentLoading] = useState(false);
@@ -603,25 +605,29 @@ export default function AgentDetailPage() {
                   Log in to Purchase
                 </a>
               ) : (
-                <div className="mt-6 space-y-3">
-                  {/* Stripe checkout (primary) */}
-                  <button
-                    onClick={handleStripeCheckout}
+                <d<button
+                    onClick={() => setBuyRentModalOpen(true)}
                     disabled={paymentLoading}
                     className="w-full rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 px-5 py-3 font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    {paymentLoading ? 'Redirecting...' : '💳 Pay with Card (Stripe)'}
-                  </button>
-
-                  {/* Manual payment — redirects to /checkout/[id] */}
-                  <button
-                    onClick={handleManualPayment}
-                    disabled={paymentLoading}
-                    className="w-full rounded-xl border border-slate-600 bg-slate-800 px-5 py-3 font-semibold text-slate-200 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {paymentLoading ? 'Loading...' : '🏦 Pay via UPI / Crypto'}
+                    {paymentLoading ? 'Loading...' : '🛒 Buy or Rent Agent'}
                   </button>
                 </div>
+              )}
+            </div>
+
+            {/* Buy/Rent Modal */}
+            {agent && (
+              <BuyRentModal
+                agent={agent}
+                isOpen={buyRentModalOpen}
+                onClose={() => setBuyRentModalOpen(false)}
+                onSuccess={() => {
+                  checkAccess();
+                  loadAgent();
+                }}
+              />
+              </div>
               )}
             </div>
 

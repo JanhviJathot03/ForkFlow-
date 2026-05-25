@@ -89,7 +89,7 @@ router.post('/', authenticateToken, async (req, res) => {
       creatorId: userId,
       pricingModel: normalizedPricingModel,
       ...priceFields,
-      isPublished: false,
+      isPublished: true,
     });
 
     res.status(201).json({

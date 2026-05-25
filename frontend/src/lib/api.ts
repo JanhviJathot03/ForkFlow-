@@ -29,6 +29,7 @@ apiClient.interceptors.request.use((config) => {
 // ─── Auth ────────────────────────────────────────────────────────────────────
 export const auth = {
   register: (data: any) => apiClient.post('/auth/register', data),
+  login: (data: any) => apiClient.post('/auth/login', data),
   verifyWallet: (data: any) => apiClient.post('/auth/verify-wallet', data),
   getBalance: (walletAddress: string) => apiClient.get(`/auth/balance/${walletAddress}`),
 };

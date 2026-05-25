@@ -1,6 +1,7 @@
 const express = require('express');
 const { generateToken } = require('../utils/auth');
 const web3Service = require('../services/web3Service');
+const bcrypt = require('bcryptjs');
 const { User } = require('../models');
 
 const router = express.Router();
@@ -11,7 +12,38 @@ const router = express.Router();
  */
 router.post('/register', async (req, res) => {
   try {
-    const { walletAddress, email, username, signature, message } = req.body;
+    const { walletAddress, email, username, password, signature, message } = req.body;
+    
+    // If email/password signup
+    if (email && password && !walletAddress) {
+      const existingUser = await User.findOne({ where: { email } });
+      if (existingUser) {
+        return res.status(409).json({ error: 'Email already registered' });
+      }
+
+      const hashedPassword = await bcrypt.hash(password, 10);
+      const user = await User.create({
+        email,
+        username,
+        password: hashedPassword,
+        walletAddress: `email_${email}`,
+      });
+
+      const token = generateToken(user.id, user.walletAddress);
+      return res.json({
+        success: true,
+        token,
+        id: user.id,
+        user: {
+          id: user.id,
+          email: user.email,
+          username: user.username,
+          walletAddress: user.walletAddress,
+        },
+      });
+    }
+
+    // Wallet signup
     const normalizedWalletAddress = walletAddress?.toLowerCase();
 
     if (!normalizedWalletAddress || !web3Service.isValidAddress(walletAddress)) {
@@ -58,6 +90,47 @@ router.post('/register', async (req, res) => {
   } catch (error) {
     console.error('Auth error:', error);
     res.status(500).json({ error: 'Authentication failed' });
+  }
+});
+
+/**
+ * POST /api/auth/login
+ * Login with email and password
+ */
+router.post('/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password required' });
+    }
+
+    const user = await User.findOne({ where: { email } });
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, user.password || '');
+    if (!isPasswordValid) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+
+    const token = generateToken(user.id, user.walletAddress);
+
+    res.json({
+      success: true,
+      token,
+      id: user.id,
+      user: {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        walletAddress: user.walletAddress,
+      },
+    });
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ error: 'Login failed' });
   }
 });
 
