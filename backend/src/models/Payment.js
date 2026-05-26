@@ -1,58 +1,19 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/database');
+const createModel = require('./modelFactory');
 
-const Payment = sequelize.define('Payment', {
-  id: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
-    primaryKey: true,
-  },
-  payerId: {
-    type: DataTypes.UUID,
-    allowNull: false,
-  },
-  receiverId: {
-    type: DataTypes.UUID,
-    allowNull: false,
-  },
-  agentId: {
-    type: DataTypes.UUID,
-    allowNull: false,
-  },
-  amount: {
-    type: DataTypes.DECIMAL(18, 8),
-    allowNull: false,
-  },
-  paymentType: {
-    type: DataTypes.ENUM('purchase', 'subscription', 'pay_per_use', 'fork_royalty', 'rental'),
-    allowNull: false,
-  },
-  rentalDays: {
-    type: DataTypes.INTEGER,
-    allowNull: true,
-  },
-  transactionHash: {
-    type: DataTypes.STRING,
-    allowNull: true,
-    unique: true,
-  },
-  locusPaymentId: {
-    type: DataTypes.STRING,
-    allowNull: true,
-    unique: true,
-  },
-  status: {
-    type: DataTypes.ENUM('pending', 'completed', 'failed', 'refunded'),
-    allowNull: false,
-    defaultValue: 'pending',
-  },
-  metadata: {
-    type: DataTypes.JSONB,
-    allowNull: false,
-    defaultValue: {},
-  },
-}, {
-  tableName: 'payments',
+const Payment = createModel('Payments', {
+  id: { type: 'uuid', primaryKey: true },
+  payerId: { type: 'uuid', required: true },
+  receiverId: { type: 'uuid', required: true },
+  agentId: { type: 'uuid', required: true },
+  amount: { type: 'decimal', required: true },
+  paymentType: { type: 'enum', values: ['purchase', 'subscription', 'pay_per_use', 'fork_royalty', 'rental'], required: true },
+  rentalDays: { type: 'integer' },
+  transactionHash: { type: 'string', unique: true },
+  locusPaymentId: { type: 'string', unique: true },
+  status: { type: 'enum', values: ['pending', 'completed', 'failed', 'refunded'], default: 'pending' },
+  metadata: { type: 'json', default: {} },
+  createdAt: { type: 'date' },
+  updatedAt: { type: 'date' },
 });
 
 module.exports = Payment;

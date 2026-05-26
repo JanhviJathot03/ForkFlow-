@@ -38,21 +38,21 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-purple-950 text-white">
+    <div className="min-h-screen bg-black text-white">
       <div className="mx-auto flex min-h-screen max-w-5xl items-center px-4 py-16">
         <div className="grid w-full gap-8 lg:grid-cols-[1.25fr_0.75fr]">
-          <section className="rounded-[2rem] border border-slate-800 bg-slate-900/60 p-10 shadow-2xl shadow-slate-950/40 backdrop-blur">
-            <p className="text-sm uppercase tracking-[0.3em] text-cyan-300">Locus Agents</p>
-            <h1 className="mt-4 max-w-2xl text-5xl font-semibold leading-tight">
-              Sign in to access the AI agent marketplace.
+          <section className="liquid-glass rounded-[2rem] p-10 shadow-2xl shadow-black/30">
+            <p className="text-sm uppercase tracking-[0.3em] text-white/80">ForkFlow</p>
+            <h1 className="mt-4 max-w-2xl font-heading italic text-5xl leading-tight tracking-[-2px]">
+              Sign in to access the agent marketplace.
             </h1>
             <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-300">
-              Use your email or connect your wallet to sign in, create agents, buy and trade on the marketplace.
+              Use your email to sign in, create agents, buy and trade on the marketplace.
             </p>
             <div className="mt-10 grid gap-4 sm:grid-cols-3">
               <div className="rounded-2xl border border-slate-800 bg-slate-950/50 p-4">
                 <p className="text-sm text-slate-400">1. Sign In</p>
-                <p className="mt-2 font-medium">Email or Wallet</p>
+                <p className="mt-2 font-medium">Email </p>
               </div>
               <div className="rounded-2xl border border-slate-800 bg-slate-950/50 p-4">
                 <p className="text-sm text-slate-400">2. Explore</p>
@@ -66,29 +66,20 @@ export default function LoginPage() {
           </section>
 
           <aside className="flex items-center">
-            <div className="w-full rounded-xl border border-slate-800 bg-slate-900/80 p-6 space-y-4">
+            <div className="w-full liquid-glass rounded-[1.25rem] p-6 space-y-4">
               {/* Mode toggle */}
               <div className="flex gap-2 mb-6">
                 <button
                   onClick={() => setLoginMode('email')}
                   className={`flex-1 py-2 rounded-lg font-semibold transition ${
                     loginMode === 'email'
-                      ? 'bg-blue-500 text-white'
-                      : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                      ? 'liquid-glass-strong text-white'
+                      : 'liquid-glass text-white/80 hover:text-white'
                   }`}
                 >
                   Email
                 </button>
-                <button
-                  onClick={() => setLoginMode('wallet')}
-                  className={`flex-1 py-2 rounded-lg font-semibold transition ${
-                    loginMode === 'wallet'
-                      ? 'bg-blue-500 text-white'
-                      : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                  }`}
-                >
-                  Wallet
-                </button>
+              
               </div>
 
               {loginMode === 'email' ? (
@@ -102,7 +93,7 @@ export default function LoginPage() {
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         required
-                        className="w-full bg-slate-950 border border-slate-700 rounded-lg px-4 py-2 text-white placeholder-slate-500 focus:border-blue-500 outline-none transition"
+                        className="w-full liquid-glass rounded-full px-4 py-2 text-white placeholder:text-white/50 outline-none"
                         placeholder="your@email.com"
                       />
                     </div>
@@ -114,7 +105,7 @@ export default function LoginPage() {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         required
-                        className="w-full bg-slate-950 border border-slate-700 rounded-lg px-4 py-2 text-white placeholder-slate-500 focus:border-blue-500 outline-none transition"
+                        className="w-full liquid-glass rounded-full px-4 py-2 text-white placeholder:text-white/50 outline-none"
                         placeholder="••••••••"
                       />
                     </div>
@@ -124,7 +115,7 @@ export default function LoginPage() {
                     <button
                       type="submit"
                       disabled={loading}
-                      className="w-full bg-blue-500 hover:bg-blue-600 disabled:bg-slate-600 text-white font-semibold py-2 rounded-lg transition"
+                      className="w-full liquid-glass-strong text-white font-semibold py-2 rounded-full transition disabled:opacity-60"
                     >
                       {loading ? 'Signing in...' : 'Sign In'}
                     </button>

@@ -1,23 +1,37 @@
 import axios from 'axios';
 
+/** IPv4 loopback — avoids Windows resolving localhost to ::1 when backend listens on IPv4 only. */
+const DEFAULT_BACKEND_API = 'http://127.0.0.1:5000/api';
+
 function resolveApiBaseUrl() {
-  // In the browser, always use the Next.js proxy (/api/*) to avoid CORS.
-  // The proxy in next.config.ts forwards these to the backend.
-  if (typeof window !== 'undefined') {
-    return '/api';
-  }
-  // On the server (SSR), call the backend directly.
-  const configuredUrl = process.env.NEXT_PUBLIC_API_URL?.trim();
-  if (configuredUrl) return configuredUrl.replace(/\/+$/, '');
-  return 'http://localhost:5000/api';
+  const configured = process.env.NEXT_PUBLIC_API_URL?.trim();
+  if (configured) return configured.replace(/\/+$/, '');
+
+  // Browser: call backend directly (CORS is enabled). Avoids Next.js dev-proxy ECONNRESET.
+  if (typeof window !== 'undefined') return DEFAULT_BACKEND_API;
+
+  return DEFAULT_BACKEND_API;
 }
 
 const API_BASE_URL = resolveApiBaseUrl();
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 30000,
+  timeout: 120000,
 });
+
+export function formatApiError(err: unknown, fallback = 'Something went wrong.'): string {
+  if (!axios.isAxiosError(err)) {
+    return err instanceof Error ? err.message : fallback;
+  }
+  const data = err.response?.data as { error?: string; details?: string } | undefined;
+  if (data?.error) return data.details ? `${data.error}: ${data.details}` : data.error;
+  if (err.code === 'ECONNABORTED') return 'Request timed out. Please try again.';
+  if (!err.response) {
+    return `Cannot reach the API at ${API_BASE_URL}. Make sure the backend is running (cd backend && npm run dev).`;
+  }
+  return fallback;
+}
 
 // Attach JWT to every request
 apiClient.interceptors.request.use((config) => {
@@ -63,6 +77,16 @@ export const payments = {
   manualInitiate: (data: any) => apiClient.post('/payments/manual/initiate', data),
   manualConfirm: (id: string) => apiClient.patch(`/payments/manual/${id}/confirm`),
 
+  // Stripe Payment Link (demo checkout)
+  stripeLinkInitiate: (data: {
+    agentId: string;
+    amount: number;
+    paymentType: string;
+    rentalDays?: number;
+  }) => apiClient.post('/payments/stripe-link/initiate', data),
+  stripeLinkComplete: (paymentId: string) =>
+    apiClient.post('/payments/stripe-link/complete', { paymentId }),
+
   getStatus: (id: string) => apiClient.get(`/payments/${id}`),
   getHistory: (walletAddress: string) =>
     apiClient.get(`/payments/history/${walletAddress}`),
@@ -71,9 +95,9 @@ export const payments = {
 
 // ─── Execute ─────────────────────────────────────────────────────────────────
 export const execute = {
-  // Multi-turn chat (preferred)
+  // Multi-turn chat (preferred) — longer timeout for AI providers
   chat: (agentId: string, messages: { role: 'user' | 'assistant'; content: string }[]) =>
-    apiClient.post(`/execute/${agentId}/chat`, { messages }),
+    apiClient.post(`/execute/${agentId}/chat`, { messages }, { timeout: 120000 }),
   // Legacy single-turn
   run: (agentId: string, input: string) =>
     apiClient.post(`/execute/${agentId}`, { input }),

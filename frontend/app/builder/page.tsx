@@ -1,11 +1,19 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { agents, ai, auth } from '@/lib/api';
+import Link from 'next/link';
+import { agents, ai } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
+import { PageVideoBackground } from '@/components/layout/PageVideoBackground';
+import { MarketplaceNav } from '@/components/layout/MarketplaceNav';
+import { BUILDER_VIDEO } from '@/lib/videos';
+import { GlassCard } from '@/components/ui/GlassCard';
+
+const inputClass =
+  'w-full liquid-glass rounded-xl px-4 py-2.5 text-white placeholder:text-white/40 outline-none font-body text-sm';
 
 export default function BuilderPage() {
-  const { user, login } = useAuthStore();
+  const { user } = useAuthStore();
   const [mounted, setMounted] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -23,10 +31,10 @@ export default function BuilderPage() {
   const [aiIdeas, setAiIdeas] = useState('');
   const [ideaDomain, setIdeaDomain] = useState('research');
   const [ideaGoal, setIdeaGoal] = useState('Build a useful agent for my audience');
-  const [devLoginLoading, setDevLoginLoading] = useState(false);
 
-  // Avoid hydration mismatch — don't render auth-dependent UI until mounted
-  useEffect(() => { setMounted(true); }, []);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,7 +47,7 @@ export default function BuilderPage() {
     setLoading(true);
 
     try {
-      const response = await agents.create({
+      await agents.create({
         ...formData,
         features: formData.features.split(',').map((f) => f.trim()),
         price: parseFloat(formData.price),
@@ -114,63 +122,55 @@ export default function BuilderPage() {
     }
   };
 
-  const handleDevLogin = async () => {
-    setDevLoginLoading(true);
-
-    try {
-      const response = await auth.register({
-        walletAddress: '0x1234567890abcdef1234567890abcdef12345678',
-        message: 'dev-login',
-        signature: 'dev-login',
-      });
-
-      const userPayload = response.data.user ?? {
-        id: 'dev-user',
-        walletAddress: response.data.walletAddress,
-      };
-
-      login(userPayload, response.data.token);
-    } catch (error) {
-      console.error('Dev login failed', error);
-      alert('Dev login failed. Check backend auth settings.');
-    } finally {
-      setDevLoginLoading(false);
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 to-slate-900">
-      <div className="max-w-5xl mx-auto px-4 py-12">
-        <h1 className="text-5xl font-bold mb-12 bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
-          Build Your AI Agent
+    <div className="relative min-h-screen bg-black text-white">
+      <PageVideoBackground src={BUILDER_VIDEO} videoOpacity={0.2} scrimOpacity={0.75} />
+      <MarketplaceNav />
+
+      <div className="relative z-10 max-w-5xl mx-auto px-4 pt-28 pb-16">
+        <h1 className="font-heading italic text-white text-5xl md:text-6xl tracking-[-2px] mb-4">
+          Build your agent
         </h1>
+        <p className="text-white/70 font-body font-light mb-10 max-w-2xl">
+          Define your agent, generate ideas with AI, and publish to the marketplace.
+        </p>
 
-        <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr] mb-10">
-          <section className="rounded-2xl border border-slate-800 bg-slate-900/80 p-6">
-            <h2 className="text-xl font-semibold mb-4">AI Assistant</h2>
-            <p className="text-sm text-slate-400 mb-6">
-              Generate starter ideas and prompt templates using AI.
-            </p>
-
+        <div className="grid gap-6  lg:grid-cols-[0.9fr_1.1fr]">
+          <GlassCard
+            unified
+            bodyClassName="p-6"
+            header={
+              <div className="mb-6">
+                <h2 className="text-xl font-semibold font-body text-white">AI assistant</h2>
+                <p className="text-sm text-white/70 mt-1 font-body font-light">
+                  Generate starter ideas and prompt templates using AI.
+                </p>
+              </div>
+            }
+          >
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-semibold mb-2">Domain</label>
+                <label className="block text-sm font-semibold mb-2 font-body text-white/90">
+                  Domain
+                </label>
                 <input
                   type="text"
                   value={ideaDomain}
                   onChange={(e) => setIdeaDomain(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-700 rounded px-4 py-2 text-white placeholder-slate-500 focus:border-blue-500 outline-none transition"
+                  className={inputClass}
                   placeholder="research, finance, content, support"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-semibold mb-2">Goal</label>
+                <label className="block text-sm font-semibold mb-2 font-body text-white/90">
+                  Goal
+                </label>
                 <textarea
                   value={ideaGoal}
                   onChange={(e) => setIdeaGoal(e.target.value)}
                   rows={4}
-                  className="w-full bg-slate-950 border border-slate-700 rounded px-4 py-2 text-white placeholder-slate-500 focus:border-blue-500 outline-none transition"
+                  className={`${inputClass} resize-none`}
                   placeholder="What should this agent help users do?"
                 />
               </div>
@@ -179,97 +179,114 @@ export default function BuilderPage() {
                 type="button"
                 onClick={handleGenerateIdeas}
                 disabled={ideaLoading}
-                className="w-full rounded-lg bg-cyan-500 px-4 py-3 font-semibold text-slate-950 transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
+                className="w-full rounded-full liquid-glass-strong px-4 py-3 font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-60 font-body"
               >
-                {ideaLoading ? 'Generating ideas...' : 'Generate Agent Ideas'}
+                {ideaLoading ? 'Generating ideas...' : 'Generate agent ideas'}
               </button>
             </div>
 
             {aiIdeas ? (
-              <div className="mt-6 rounded-xl border border-slate-700 bg-slate-950/70 p-4">
-                <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-400 mb-3">Ideas</h3>
-                <pre className="whitespace-pre-wrap text-sm text-slate-300 leading-6">{aiIdeas}</pre>
+              <div className="mt-6 rounded-xl border border-white/15 bg-white/10 p-4 backdrop-blur-md">
+                <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-white/55 mb-3 font-body">
+                  Ideas
+                </h3>
+                <pre className="whitespace-pre-wrap text-sm text-white/80 leading-6 font-body">
+                  {aiIdeas}
+                </pre>
               </div>
             ) : null}
-          </section>
+          </GlassCard>
 
-          <section className="rounded-2xl border border-slate-800 bg-slate-900/80 p-6">
-            {mounted && !user && (
-              <div className="bg-yellow-900/20 border border-yellow-700 p-4 rounded-lg mb-8">
-                <p className="text-yellow-300">
-                  Please login with your wallet to create an agent
+          <GlassCard
+            unified
+            bodyClassName="p-6"
+            header={
+              <div className="mb-6">
+                <h2 className="text-xl font-semibold font-body text-white">Create agent</h2>
+                <p className="text-sm text-white/70 mt-1 font-body font-light">
+                  Configure your agent and publish to the marketplace.
                 </p>
-                <button
-                  type="button"
-                  onClick={handleDevLogin}
-                  disabled={devLoginLoading}
-                  className="mt-4 w-full rounded-lg border border-cyan-500/50 bg-cyan-500/10 px-4 py-2 text-sm font-semibold text-cyan-200 transition hover:bg-cyan-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+              </div>
+            }
+          >
+            {mounted && !user && (
+              <div className="liquid-glass-strong rounded-xl p-4 mb-8 border border-white/10">
+                <p className="text-white/90 mb-3 font-body text-sm">
+                  You need to be logged in to create an agent.
+                </p>
+                <Link
+                  href="/login"
+                  className="block w-full text-center rounded-full liquid-glass-strong px-4 py-2.5 text-white font-semibold transition font-body text-sm"
                 >
-                  {devLoginLoading ? 'Signing in...' : 'Dev Login (No Wallet)'}
-                </button>
+                  Go to login
+                </Link>
               </div>
             )}
 
             {success && (
-              <div className="bg-green-900/20 border border-green-700 p-4 rounded-lg mb-8">
-                <p className="text-green-300">
-                  ✓ Agent created successfully! Check your dashboard.
+              <div className="liquid-glass-strong rounded-xl p-4 mb-8 border border-green-400/20">
+                <p className="text-green-300 font-body text-sm">
+                  Agent created successfully. Check your dashboard.
                 </p>
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="rounded-lg border border-slate-700 bg-slate-800 p-8">
-              {/* Agent Name */}
-              <div className="mb-6">
-                <label className="block text-sm font-semibold mb-2">Agent Name</label>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div>
+                <label className="block text-sm font-semibold mb-2 font-body text-white/90">
+                  Agent name
+                </label>
                 <input
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="e.g., AI Research Agent"
-                  className="w-full bg-slate-900 border border-slate-600 rounded px-4 py-2 text-white placeholder-slate-500 focus:border-blue-500 outline-none transition"
+                  className={inputClass}
                   required
                 />
               </div>
 
-              {/* Description */}
-              <div className="mb-6">
-                <label className="block text-sm font-semibold mb-2">Description</label>
+              <div>
+                <label className="block text-sm font-semibold mb-2 font-body text-white/90">
+                  Description
+                </label>
                 <textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   placeholder="Describe what your agent does"
                   rows={4}
-                  className="w-full bg-slate-900 border border-slate-600 rounded px-4 py-2 text-white placeholder-slate-500 focus:border-blue-500 outline-none transition"
+                  className={`${inputClass} resize-none`}
                   required
                 />
               </div>
 
-              {/* Category */}
-              <div className="mb-6">
-                <label className="block text-sm font-semibold mb-2">Category</label>
+              <div>
+                <label className="block text-sm font-semibold mb-2 font-body text-white/90">
+                  Category
+                </label>
                 <select
                   value={formData.category}
                   onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  className="w-full bg-slate-900 border border-slate-600 rounded px-4 py-2 text-white focus:border-blue-500 outline-none transition"
+                  className={inputClass}
                 >
-                  <option>research</option>
-                  <option>development</option>
-                  <option>content</option>
-                  <option>finance</option>
-                  <option>social</option>
+                  <option value="research">research</option>
+                  <option value="development">development</option>
+                  <option value="content">content</option>
+                  <option value="finance">finance</option>
+                  <option value="social">social</option>
                 </select>
               </div>
 
-              {/* Prompt Template */}
-              <div className="mb-6">
+              <div>
                 <div className="mb-2 flex items-center justify-between gap-4">
-                  <label className="block text-sm font-semibold">Prompt Template</label>
+                  <label className="block text-sm font-semibold font-body text-white/90">
+                    Prompt template
+                  </label>
                   <button
                     type="button"
                     onClick={handleGeneratePrompt}
                     disabled={promptLoading}
-                    className="rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-3 py-1.5 text-sm font-semibold text-cyan-300 transition hover:bg-cyan-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="rounded-full liquid-glass px-3 py-1.5 text-sm font-semibold text-white/90 transition disabled:cursor-not-allowed disabled:opacity-60 font-body"
                   >
                     {promptLoading ? 'Generating...' : 'Generate with AI'}
                   </button>
@@ -279,60 +296,63 @@ export default function BuilderPage() {
                   onChange={(e) => setFormData({ ...formData, promptTemplate: e.target.value })}
                   placeholder="Define the system prompt for your agent"
                   rows={6}
-                  className="w-full bg-slate-900 border border-slate-600 rounded px-4 py-2 text-white placeholder-slate-500 focus:border-blue-500 outline-none transition"
+                  className={`${inputClass} resize-none`}
                 />
               </div>
 
-              {/* Features */}
-              <div className="mb-6">
-                <label className="block text-sm font-semibold mb-2">Features (comma-separated)</label>
+              <div>
+                <label className="block text-sm font-semibold mb-2 font-body text-white/90">
+                  Features (comma-separated)
+                </label>
                 <input
                   type="text"
                   value={formData.features}
                   onChange={(e) => setFormData({ ...formData, features: e.target.value })}
                   placeholder="e.g., Real-time data, PDF reports, Email alerts"
-                  className="w-full bg-slate-900 border border-slate-600 rounded px-4 py-2 text-white placeholder-slate-500 focus:border-blue-500 outline-none transition"
+                  className={inputClass}
                 />
               </div>
 
-              {/* Pricing */}
-              <div className="grid grid-cols-2 gap-6 mb-6">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-semibold mb-2">Pricing Model</label>
+                  <label className="block text-sm font-semibold mb-2 font-body text-white/90">
+                    Pricing model
+                  </label>
                   <select
                     value={formData.pricingModel}
                     onChange={(e) => setFormData({ ...formData, pricingModel: e.target.value })}
-                    className="w-full bg-slate-900 border border-slate-600 rounded px-4 py-2 text-white focus:border-blue-500 outline-none transition"
+                    className={inputClass}
                   >
-                    <option>subscription</option>
-                    <option>pay_per_use</option>
-                    <option>purchase</option>
+                    <option value="subscription">subscription</option>
+                    <option value="pay_per_use">pay_per_use</option>
+                    <option value="purchase">purchase</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold mb-2">Price (ETH)</label>
+                  <label className="block text-sm font-semibold mb-2 font-body text-white/90">
+                    Price (USD)
+                  </label>
                   <input
                     type="number"
-                    step="0.001"
+                    step="0.01"
                     value={formData.price}
                     onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                    placeholder="0.05"
-                    className="w-full bg-slate-900 border border-slate-600 rounded px-4 py-2 text-white placeholder-slate-500 focus:border-blue-500 outline-none transition"
+                    placeholder="9.99"
+                    className={inputClass}
                     required
                   />
                 </div>
               </div>
 
-              {/* Submit */}
               <button
                 type="submit"
                 disabled={loading || (mounted && !user)}
-                className="w-full bg-blue-500 hover:bg-blue-600 disabled:bg-slate-600 text-white font-semibold py-3 rounded-lg transition"
+                className="w-full rounded-full liquid-glass-strong text-white font-semibold py-3 transition disabled:opacity-60 disabled:cursor-not-allowed font-body"
               >
-                {loading ? 'Creating...' : 'Create Agent'}
+                {loading ? 'Creating...' : 'Create agent'}
               </button>
             </form>
-          </section>
+          </GlassCard>
         </div>
       </div>
     </div>

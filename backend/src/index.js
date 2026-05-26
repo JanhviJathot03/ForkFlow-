@@ -19,6 +19,13 @@ const db = require('./models');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+process.on('unhandledRejection', (reason) => {
+  console.error('[unhandledRejection]', reason);
+});
+process.on('uncaughtException', (err) => {
+  console.error('[uncaughtException]', err);
+});
+
 // ── CORS ─────────────────────────────────────────────────────────────────────
 // Allow the frontend origin AND the Next.js server-side proxy (same host,
 // different port). In dev we allow all localhost origins for convenience.
@@ -52,7 +59,7 @@ app.get('/health', (req, res) => {
   res.json({
     status: 'OK',
     timestamp: new Date().toISOString(),
-    db: db.sequelize.authenticate().then(() => 'connected').catch(() => 'disconnected'),
+    storage: 'local-memory',
     ai: require('./services/aiService').activeProvider(),
   });
 });
@@ -76,28 +83,29 @@ async function startServer() {
   const publicApiUrl = process.env.API_URL?.trim() || `http://localhost:${PORT}`;
   const aiProvider = require('./services/aiService').activeProvider();
 
-  // Start listening immediately — don't block on DB
-  app.listen(PORT, '0.0.0.0', () => {
+  // Start listening immediately (long timeout for AI chat requests)
+  const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`
 ╔══════════════════════════════════════════════╗
 ║  🚀 Locus Agents Backend                     ║
 ║  🔗 ${publicApiUrl.padEnd(43)}║
 ║  🤖 AI provider : ${aiProvider.padEnd(27)}║
 ║  📝 Environment : ${(process.env.NODE_ENV || 'development').padEnd(27)}║
+║  💾 Storage     : Local Memory               ║
 ╚══════════════════════════════════════════════╝
     `);
   });
+  server.timeout = 120000;
+  server.keepAliveTimeout = 120000;
 
-  // Connect to DB in the background — routes that need DB will fail gracefully
-  // if it's not ready yet, but the server stays up.
+  // Initialize local storage
   try {
     await db.sequelize.authenticate();
-    console.log('✓ Database connected');
-    await db.sequelize.sync({ alter: process.env.NODE_ENV === 'development' });
-    console.log('✓ Database synced');
+    console.log('✓ Local storage initialized');
+    await db.sequelize.sync();
+    console.log('✓ Local storage synced');
   } catch (error) {
-    console.error('✗ Database connection failed:', error.message);
-    console.error('  The server is still running. Fix DATABASE_URL and restart to enable DB features.');
+    console.warn('⚠ Local storage init warning:', error.message);
   }
 }
 

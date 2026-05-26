@@ -1,47 +1,17 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/database');
+const createModel = require('./modelFactory');
 
-const Execution = sequelize.define('Execution', {
-  id: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
-    primaryKey: true,
-  },
-  agentId: {
-    type: DataTypes.UUID,
-    allowNull: false,
-  },
-  userId: {
-    type: DataTypes.UUID,
-    allowNull: false,
-  },
-  input: {
-    type: DataTypes.TEXT,
-    allowNull: false,
-  },
-  output: {
-    type: DataTypes.TEXT,
-    allowNull: true,
-  },
-  status: {
-    type: DataTypes.ENUM('running', 'completed', 'failed'),
-    allowNull: false,
-    defaultValue: 'running',
-  },
-  durationMs: {
-    type: DataTypes.INTEGER,
-    allowNull: true,
-  },
-  tokensUsed: {
-    type: DataTypes.INTEGER,
-    allowNull: true,
-  },
-  errorMessage: {
-    type: DataTypes.TEXT,
-    allowNull: true,
-  },
-}, {
-  tableName: 'executions',
+const Execution = createModel('Executions', {
+  id: { type: 'uuid', primaryKey: true },
+  agentId: { type: 'uuid', required: true },
+  userId: { type: 'uuid', required: true },
+  input: { type: 'text', required: true },
+  output: { type: 'text' },
+  status: { type: 'enum', values: ['running', 'completed', 'failed'], default: 'running' },
+  durationMs: { type: 'integer' },
+  tokensUsed: { type: 'integer' },
+  errorMessage: { type: 'text' },
+  createdAt: { type: 'date' },
+  updatedAt: { type: 'date' },
 });
 
 module.exports = Execution;

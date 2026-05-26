@@ -1,35 +1,13 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/database');
+const createModel = require('./modelFactory');
 
-const Review = sequelize.define('Review', {
-  id: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
-    primaryKey: true,
-  },
-  agentId: {
-    type: DataTypes.UUID,
-    allowNull: false,
-  },
-  userId: {
-    type: DataTypes.UUID,
-    allowNull: false,
-  },
-  rating: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    validate: { min: 1, max: 5 },
-  },
-  comment: {
-    type: DataTypes.TEXT,
-    allowNull: true,
-  },
-}, {
-  tableName: 'reviews',
-  indexes: [
-    // One review per user per agent — use snake_case column names to match Sequelize's DB columns
-    { unique: true, fields: ['agent_id', 'user_id'] },
-  ],
+const Review = createModel('Reviews', {
+  id: { type: 'uuid', primaryKey: true },
+  agentId: { type: 'uuid', required: true },
+  userId: { type: 'uuid', required: true },
+  rating: { type: 'integer', required: true, min: 1, max: 5 },
+  comment: { type: 'text' },
+  createdAt: { type: 'date' },
+  updatedAt: { type: 'date' },
 });
 
 module.exports = Review;

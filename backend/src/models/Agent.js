@@ -1,93 +1,26 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/database');
+const createModel = require('./modelFactory');
 
-const Agent = sequelize.define('Agent', {
-  id: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
-    primaryKey: true,
-  },
-  creatorId: {
-    type: DataTypes.UUID,
-    allowNull: false,
-  },
-  name: {
-    type: DataTypes.STRING,
-    allowNull: false,
-  },
-  description: {
-    type: DataTypes.TEXT,
-    allowNull: false,
-  },
-  category: {
-    type: DataTypes.STRING,
-    allowNull: false,
-  },
-  promptTemplate: {
-    type: DataTypes.TEXT,
-    allowNull: true,
-  },
-  apiIntegrations: {
-    type: DataTypes.JSONB,
-    allowNull: false,
-    defaultValue: [],
-  },
-  features: {
-    type: DataTypes.JSONB,
-    allowNull: false,
-    defaultValue: [],
-  },
-  version: {
-    type: DataTypes.STRING,
-    allowNull: false,
-    defaultValue: '1.0.0',
-  },
-  forkedFromId: {
-    type: DataTypes.UUID,
-    allowNull: true,
-  },
-  pricingModel: {
-    type: DataTypes.ENUM('purchase', 'subscription', 'pay_per_use'),
-    allowNull: false,
-    defaultValue: 'purchase',
-  },
-  monthlyCost: {
-    type: DataTypes.DECIMAL(18, 8),
-    allowNull: false,
-    defaultValue: 0,
-  },
-  payPerUsePrice: {
-    type: DataTypes.DECIMAL(18, 8),
-    allowNull: false,
-    defaultValue: 0,
-  },
-  purchasePrice: {
-    type: DataTypes.DECIMAL(18, 8),
-    allowNull: false,
-    defaultValue: 0,
-  },
-  isPublished: {
-    type: DataTypes.BOOLEAN,
-    allowNull: false,
-    defaultValue: false,
-  },
-  downloads: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    defaultValue: 0,
-  },
-  ratings: {
-    type: DataTypes.FLOAT,
-    allowNull: false,
-    defaultValue: 0,
-  },
-  accessType: {
-    type: DataTypes.ENUM('free', 'paid'),
-    allowNull: false,
-    defaultValue: 'paid',
-  },
-}, {
-  tableName: 'agents',
+const Agent = createModel('Agents', {
+  id: { type: 'uuid', primaryKey: true },
+  creatorId: { type: 'uuid', required: true },
+  name: { type: 'string', required: true },
+  description: { type: 'text', required: true },
+  category: { type: 'string', required: true },
+  promptTemplate: { type: 'text' },
+  apiIntegrations: { type: 'json', default: [] },
+  features: { type: 'json', default: [] },
+  version: { type: 'string', default: '1.0.0' },
+  forkedFromId: { type: 'uuid' },
+  pricingModel: { type: 'enum', values: ['purchase', 'subscription', 'pay_per_use'], default: 'purchase' },
+  monthlyCost: { type: 'decimal', default: 0 },
+  payPerUsePrice: { type: 'decimal', default: 0 },
+  purchasePrice: { type: 'decimal', default: 0 },
+  isPublished: { type: 'boolean', default: false },
+  downloads: { type: 'integer', default: 0 },
+  ratings: { type: 'float', default: 0 },
+  accessType: { type: 'enum', values: ['free', 'paid'], default: 'paid' },
+  createdAt: { type: 'date' },
+  updatedAt: { type: 'date' },
 });
 
 module.exports = Agent;

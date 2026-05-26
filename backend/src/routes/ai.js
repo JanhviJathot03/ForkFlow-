@@ -7,10 +7,10 @@ router.get('/status', (req, res) => {
   res.json({
     success: true,
     provider: aiService.activeProvider(),
-    hasOpenAI: aiService.hasOpenAI(),
+    hasCloudAI: aiService.hasCloudAI(),
     ollamaUrl: aiService.ollamaBaseUrl,
     ollamaModel: aiService.ollamaModel,
-    openaiModel: aiService.openaiModel,
+    chatModel: aiService.chatModel,
   });
 });
 

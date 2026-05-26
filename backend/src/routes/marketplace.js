@@ -1,6 +1,5 @@
 const express = require('express');
 const { optionalAuth } = require('../middleware/auth');
-const { Op } = require('sequelize');
 const { Agent, User } = require('../models');
 
 const router = express.Router();
@@ -48,6 +47,7 @@ router.get('/', optionalAuth, async (req, res) => {
       pagination: { page, limit, total },
     });
   } catch (error) {
+    console.error('Marketplace error:', error);
     res.status(500).json({ error: 'Failed to fetch marketplace agents' });
   }
 });
@@ -60,57 +60,55 @@ router.get('/search', async (req, res) => {
   try {
     const { q, category, priceMin = 0, priceMax = 100, rating = 0 } = req.query;
 
-    const where = {
-      isPublished: true,
-      [Op.and]: [],
-    };
-
-    const priceConditions = [];
-    if (priceMin !== undefined && priceMin !== null) {
-      priceConditions.push({ purchasePrice: { [Op.gte]: Number(priceMin) } });
-    }
-    if (priceMax !== undefined && priceMax !== null) {
-      priceConditions.push({ purchasePrice: { [Op.lte]: Number(priceMax) } });
-    }
-
-    if (priceConditions.length > 0) {
-      where[Op.and].push(...priceConditions);
-    }
-
-    if (q) {
-      where[Op.and].push({
-        [Op.or]: [
-          { name: { [Op.iLike]: `%${q}%` } },
-          { description: { [Op.iLike]: `%${q}%` } },
-          { category: { [Op.iLike]: `%${q}%` } },
-        ],
-      });
-    }
-
-    if (category) {
-      where.category = category;
-    }
-
-    if (Number(rating) > 0) {
-      where.ratings = { [Op.gte]: Number(rating) };
-    }
-
-    if (where[Op.and].length === 0) {
-      delete where[Op.and];
-    }
-
-    const results = await Agent.findAll({
-      where,
-      include: [
-        {
-          model: User,
-          as: 'creator',
-          attributes: ['id', 'walletAddress', 'username', 'avatarUrl'],
-        },
-      ],
-      order: [['downloads', 'DESC'], ['ratings', 'DESC']],
-      limit: 24,
+    // Get all published agents
+    let results = Agent.findAll({
+      where: { isPublished: true },
     });
+
+    // Filter by search query
+    if (q) {
+      const queryLower = q.toLowerCase();
+      results = results.filter(agent =>
+        agent.name.toLowerCase().includes(queryLower) ||
+        agent.description.toLowerCase().includes(queryLower) ||
+        agent.category.toLowerCase().includes(queryLower)
+      );
+    }
+
+    // Filter by category
+    if (category) {
+      results = results.filter(agent => agent.category === category);
+    }
+
+    // Filter by rating
+    if (Number(rating) > 0) {
+      results = results.filter(agent => agent.ratings >= Number(rating));
+    }
+
+    // Sort by downloads and rating
+    results.sort((a, b) => {
+      if (b.downloads !== a.downloads) {
+        return b.downloads - a.downloads;
+      }
+      return b.ratings - a.ratings;
+    });
+
+    // Add creator info
+    results = results.map(agent => {
+      const creator = User.findByPk(agent.creatorId);
+      if (creator) {
+        agent.creator = {
+          id: creator.id,
+          walletAddress: creator.walletAddress,
+          username: creator.username,
+          avatarUrl: creator.avatarUrl,
+        };
+      }
+      return agent;
+    });
+
+    // Limit results
+    results = results.slice(0, 24);
 
     res.json({
       success: true,
@@ -118,6 +116,7 @@ router.get('/search', async (req, res) => {
       query: q,
     });
   } catch (error) {
+    console.error('Search error:', error);
     res.status(500).json({ error: 'Search failed' });
   }
 });
@@ -137,14 +136,15 @@ router.get('/categories', async (req, res) => {
       { id: 'customer-support', name: 'Customer Support' },
     ];
 
-    const counts = await Promise.all(
-      categoryNames.map(async (categoryItem) => ({
+    const counts = categoryNames.map(categoryItem => {
+      const agents = Agent.findAll({
+        where: { category: categoryItem.id, isPublished: true },
+      });
+      return {
         ...categoryItem,
-        count: await Agent.count({
-          where: { category: categoryItem.id, isPublished: true },
-        }),
-      }))
-    );
+        count: agents.length,
+      };
+    });
 
     res.json({
       success: true,

@@ -55,8 +55,7 @@ class AiService {
   }
 
   // ── Multi-turn cloud call (full history) ─────────────────────────────────
-  async chatWithHistory(systemPrompt, messages) {
-    // messages = [{ role: 'user'|'assistant', content: string }, ...]
+  async chatWithHistoryCloud(systemPrompt, messages) {
     const client = getClient();
     if (!client) throw new Error('No cloud AI client configured');
     const fullMessages = [{ role: 'system', content: systemPrompt }, ...messages];
@@ -64,6 +63,29 @@ class AiService {
       model: this.chatModel, messages: fullMessages, max_tokens: 1024, temperature: 0.7,
     });
     return completion.choices[0]?.message?.content?.trim() || '';
+  }
+
+  async chatWithHistory(systemPrompt, messages) {
+    if (this.hasCloudAI()) {
+      try {
+        return await this.chatWithHistoryCloud(systemPrompt, messages);
+      } catch (err) {
+        console.warn(`${this.activeProvider()} chat failed, trying Ollama:`, err.message);
+      }
+    }
+
+    const flat = messages
+      .map((m) => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`)
+      .join('\n');
+
+    try {
+      return await this.chatOllama(`${systemPrompt}\n\n${flat}\nAssistant:`);
+    } catch (err) {
+      console.warn('Ollama chat failed, using fallback:', err.message);
+    }
+
+    const lastUser = [...messages].reverse().find((m) => m.role === 'user');
+    return this.localFallback(lastUser?.content || 'Hello');
   }
 
   // ── Ollama ───────────────────────────────────────────────────────────────

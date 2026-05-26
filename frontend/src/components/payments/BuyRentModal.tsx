@@ -2,6 +2,14 @@
 
 import { useState } from 'react';
 import { payments } from '@/lib/api';
+import { savePendingStripePayment } from '@/lib/stripePayment';
+import {
+  canBuyAgent,
+  canRentAgent,
+  getBuyLabel,
+  getBuyPriceLabel,
+  resolveAgentPayment,
+} from '@/lib/agentPricing';
 
 interface BuyRentModalProps {
   agent: any;
@@ -11,80 +19,53 @@ interface BuyRentModalProps {
 }
 
 const RENT_DURATIONS = [
-  { label: '1 Month', days: 30, price: 'calculateMonthly' },
-  { label: '3 Months', days: 90, price: 'calculate3Months' },
-  { label: '6 Months', days: 180, price: 'calculate6Months' },
+  { label: '1 Month', days: 30 },
+  { label: '3 Months', days: 90 },
+  { label: '6 Months', days: 180 },
 ];
 
-export function BuyRentModal({ agent, isOpen, onClose, onSuccess }: BuyRentModalProps) {
-  const [mode, setMode] = useState<'buy' | 'rent'>('buy');
+export function BuyRentModal({ agent, isOpen, onClose }: BuyRentModalProps) {
+  const buyAvailable = canBuyAgent(agent);
+  const rentAvailable = canRentAgent(agent);
+
+  const [mode, setMode] = useState<'buy' | 'rent'>(buyAvailable ? 'buy' : 'rent');
   const [rentalDuration, setRentalDuration] = useState(30);
   const [loading, setLoading] = useState(false);
-  const [instructions, setInstructions] = useState('');
-  const [paymentInitiated, setPaymentInitiated] = useState(false);
-  const [paymentReceiver, setPaymentReceiver] = useState('');
 
   if (!isOpen) return null;
 
+  const resolved = resolveAgentPayment(agent, mode, rentalDuration);
+
   const getPriceDisplay = () => {
-    if (mode === 'buy') {
-      const price = parseFloat(agent.purchasePrice || 0);
-      return `$${price.toFixed(2)}`;
-    } else {
-      // For rental, calculate based on monthly cost and duration
-      const monthlyPrice = parseFloat(agent.monthlyCost || 0);
-      const months = Math.ceil(rentalDuration / 30);
-      const totalPrice = monthlyPrice * months;
-      return `$${totalPrice.toFixed(2)}`;
-    }
+    if (resolved.amount <= 0) return 'Free';
+    return `$${resolved.amount.toFixed(2)}`;
   };
 
-  const handleInitiatePayment = async () => {
-    setLoading(true);
-    try {
-      const paymentType = mode === 'buy' ? 'purchase' : 'rental';
-      const amount = mode === 'buy' 
-        ? parseFloat(agent.purchasePrice || 0)
-        : parseFloat(agent.monthlyCost || 0) * Math.ceil(rentalDuration / 30);
-
-      const response = await payments.manualInitiate({
-        agentId: agent.id,
-        paymentType,
-        amount,
-        rentalDays: mode === 'rent' ? rentalDuration : undefined,
-      });
-
-      setInstructions(response.data.instructions);
-      setPaymentReceiver(response.data.receiver);
-      setPaymentInitiated(true);
-    } catch (error: any) {
-      console.error('Payment initiation failed:', error);
-      alert(error.response?.data?.error || 'Payment initiation failed');
-    } finally {
-      setLoading(false);
+  const handleStripeCheckout = async () => {
+    if (resolved.amount <= 0) {
+      alert('This agent has no price set for the selected option.');
+      return;
     }
-  };
 
-  const handleMarkPaid = async () => {
     setLoading(true);
     try {
-      const response = await payments.manualConfirm({
+      const response = await payments.stripeLinkInitiate({
         agentId: agent.id,
-        paymentType: mode === 'buy' ? 'purchase' : 'rental',
-        rentalDays: mode === 'rent' ? rentalDuration : undefined,
+        paymentType: resolved.paymentType,
+        amount: resolved.amount,
+        rentalDays: resolved.rentalDays,
       });
 
-      alert('Payment confirmed! Agent ' + mode + ' successful.');
-      setPaymentInitiated(false);
-      setInstructions('');
-      setMode('buy');
-      setRentalDuration(30);
-      onSuccess?.();
-      onClose();
-    } catch (error: any) {
-      console.error('Payment confirmation failed:', error);
-      alert(error.response?.data?.error || 'Payment confirmation failed');
-    } finally {
+      savePendingStripePayment({
+        paymentId: response.data.paymentId,
+        agentId: agent.id,
+        agentName: agent.name,
+      });
+
+      window.location.href = response.data.checkoutUrl;
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { error?: string } } };
+      alert(err?.response?.data?.error || 'Could not start Stripe checkout.');
       setLoading(false);
     }
   };
@@ -95,41 +76,43 @@ export function BuyRentModal({ agent, isOpen, onClose, onSuccess }: BuyRentModal
         <div className="p-6">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-bold text-white">{agent.name}</h2>
-            <button
-              onClick={onClose}
-              className="text-slate-400 hover:text-white"
-            >
+            <button onClick={onClose} className="text-slate-400 hover:text-white">
               ✕
             </button>
           </div>
 
-          {!paymentInitiated ? (
+          {!buyAvailable && !rentAvailable ? (
+            <p className="text-slate-400 text-sm">
+              This agent is free — you already have access without payment.
+            </p>
+          ) : (
             <>
-              {/* Mode toggle */}
-              <div className="flex gap-2 mb-6">
-                <button
-                  onClick={() => setMode('buy')}
-                  className={`flex-1 py-2 rounded-lg font-semibold transition ${
-                    mode === 'buy'
-                      ? 'bg-blue-500 text-white'
-                      : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                  }`}
-                >
-                  Buy (One-time)
-                </button>
-                <button
-                  onClick={() => setMode('rent')}
-                  className={`flex-1 py-2 rounded-lg font-semibold transition ${
-                    mode === 'rent'
-                      ? 'bg-blue-500 text-white'
-                      : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                  }`}
-                >
-                  Rent (Temporary)
-                </button>
-              </div>
+              {buyAvailable && rentAvailable && (
+                <div className="flex gap-2 mb-6">
+                  <button
+                    onClick={() => setMode('buy')}
+                    className={`flex-1 py-2 rounded-lg font-semibold transition ${
+                      mode === 'buy'
+                        ? 'bg-blue-500 text-white'
+                        : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                    }`}
+                  >
+                    {getBuyLabel(agent.pricingModel)}
+                  </button>
+                  <button
+                    onClick={() => setMode('rent')}
+                    className={`flex-1 py-2 rounded-lg font-semibold transition ${
+                      mode === 'rent'
+                        ? 'bg-blue-500 text-white'
+                        : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                    }`}
+                  >
+                    Rent (Temporary)
+                  </button>
+                </div>
+              )}
 
-              {mode === 'rent' && (
+              {mode === 'rent' && rentAvailable && (
                 <div className="mb-6">
                   <label className="block text-sm font-semibold mb-3 text-slate-300">
                     Rental Duration
@@ -152,53 +135,25 @@ export function BuyRentModal({ agent, isOpen, onClose, onSuccess }: BuyRentModal
                 </div>
               )}
 
-              <div className="bg-slate-800 rounded-lg p-4 mb-6">
+              <div className="bg-slate-800 rounded-lg p-4 mb-4">
                 <p className="text-sm text-slate-400 mb-1">
-                  {mode === 'buy' ? 'Purchase Price' : 'Rental Cost'}
+                  {mode === 'rent' ? 'Rental cost' : getBuyPriceLabel(agent.pricingModel)}
                 </p>
                 <p className="text-3xl font-bold text-blue-400">{getPriceDisplay()}</p>
               </div>
 
+              <p className="text-xs text-slate-500 mb-4">
+                You will be redirected to Stripe test checkout. After paying, return to this agent
+                page — access unlocks automatically.
+              </p>
+
               <button
-                onClick={handleInitiatePayment}
-                disabled={loading}
-                className="w-full bg-blue-500 hover:bg-blue-600 disabled:bg-slate-600 text-white font-semibold py-3 rounded-lg transition"
+                onClick={handleStripeCheckout}
+                disabled={loading || resolved.amount <= 0}
+                className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:opacity-90 disabled:opacity-60 text-white font-semibold py-3 rounded-lg transition"
               >
-                {loading ? 'Processing...' : `Proceed to Payment`}
+                {loading ? 'Redirecting to Stripe...' : 'Pay with Stripe'}
               </button>
-            </>
-          ) : (
-            <>
-              {/* Payment instructions */}
-              <div className="space-y-4">
-                <div className="bg-slate-800 rounded-lg p-4">
-                  <p className="text-sm text-slate-400 mb-2">Send payment to:</p>
-                  <p className="text-white font-mono break-all">{paymentReceiver}</p>
-                </div>
-
-                <div className="bg-blue-900/20 border border-blue-700 rounded-lg p-4">
-                  <p className="text-sm font-semibold text-blue-300 mb-2">Payment Instructions:</p>
-                  <p className="text-sm text-slate-300 whitespace-pre-wrap">{instructions}</p>
-                </div>
-
-                <button
-                  onClick={handleMarkPaid}
-                  disabled={loading}
-                  className="w-full bg-green-500 hover:bg-green-600 disabled:bg-slate-600 text-white font-semibold py-3 rounded-lg transition"
-                >
-                  {loading ? 'Confirming...' : 'Mark as Paid (Dev)'}
-                </button>
-
-                <button
-                  onClick={() => {
-                    setPaymentInitiated(false);
-                    setInstructions('');
-                  }}
-                  className="w-full bg-slate-700 hover:bg-slate-600 text-white font-semibold py-2 rounded-lg transition"
-                >
-                  Back
-                </button>
-              </div>
             </>
           )}
         </div>

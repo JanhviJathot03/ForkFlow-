@@ -19,6 +19,45 @@ function getManualPaymentReceiver() {
   return process.env.PAYMENT_RECEIVER || 'N/A';
 }
 
+function getStripePaymentLinkUrl() {
+  return (
+    process.env.STRIPE_PAYMENT_LINK_URL ||
+    'https://buy.stripe.com/test_5kQ14g70t5Dq3GV3dpbsc01'
+  );
+}
+
+function buildStripeLinkCheckoutUrl(paymentId) {
+  const base = getStripePaymentLinkUrl();
+  const sep = base.includes('?') ? '&' : '?';
+  return `${base}${sep}client_reference_id=${encodeURIComponent(paymentId)}`;
+}
+
+function isStripePaymentLinkEnabled() {
+  return (
+    process.env.USE_STRIPE_PAYMENT_LINK === 'true' ||
+    process.env.NODE_ENV !== 'production'
+  );
+}
+
+async function completePaymentRecord(payment, userId) {
+  if (payment.status === 'completed') {
+    return payment;
+  }
+
+  await payment.update({
+    status: 'completed',
+    metadata: {
+      ...(payment.metadata || {}),
+      stripePaymentLink: true,
+      confirmedBy: userId,
+      confirmedAt: new Date().toISOString(),
+    },
+  });
+
+  await grantAccess(payment);
+  return payment;
+}
+
 /**
  * Grant access after a completed payment (purchase or subscription).
  * For subscriptions, creates/updates a Subscription row.
@@ -256,8 +295,12 @@ router.post('/manual/initiate', authenticateToken, async (req, res) => {
     const agent = await Agent.findByPk(agentId);
     const payer = await User.findByPk(req.user.userId);
 
-    if (!agentId || !amount) {
-      return res.status(400).json({ error: 'Agent ID and amount required' });
+    const numericAmount = Number(amount);
+    if (!agentId) {
+      return res.status(400).json({ error: 'Agent ID is required' });
+    }
+    if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
+      return res.status(400).json({ error: 'Amount must be greater than 0. Set a price on this agent first.' });
     }
 
     if (!agent || !payer) {
@@ -268,7 +311,7 @@ router.post('/manual/initiate', authenticateToken, async (req, res) => {
       payerId: payer.id,
       receiverId: agent.creatorId,
       agentId: agent.id,
-      amount,
+      amount: numericAmount,
       paymentType,
       rentalDays: paymentType === 'rental' ? rentalDays : null,
       status: 'pending',
@@ -328,6 +371,100 @@ router.patch('/manual/:id/confirm', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Manual payment confirm error:', error);
     res.status(500).json({ error: 'Failed to confirm manual payment' });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /api/payments/stripe-link/initiate
+// Demo: create pending payment and return Stripe Payment Link URL
+// ─────────────────────────────────────────────────────────────────────────────
+router.post('/stripe-link/initiate', authenticateToken, async (req, res) => {
+  try {
+    if (!isStripePaymentLinkEnabled()) {
+      return res.status(403).json({ error: 'Stripe Payment Link is disabled' });
+    }
+
+    const { agentId, amount, paymentType = 'purchase', rentalDays } = req.body;
+    const agent = await Agent.findByPk(agentId);
+    const payer = await User.findByPk(req.user.userId);
+
+    const numericAmount = Number(amount);
+    if (!agentId) {
+      return res.status(400).json({ error: 'Agent ID is required' });
+    }
+    if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
+      return res.status(400).json({ error: 'Amount must be greater than 0' });
+    }
+    if (!agent || !payer) {
+      return res.status(404).json({ error: 'Agent or user not found' });
+    }
+
+    const pendingPayment = await Payment.create({
+      payerId: payer.id,
+      receiverId: agent.creatorId,
+      agentId: agent.id,
+      amount: numericAmount,
+      paymentType,
+      rentalDays: paymentType === 'rental' ? rentalDays : null,
+      status: 'pending',
+      metadata: {
+        stripePaymentLink: true,
+        checkoutUrl: getStripePaymentLinkUrl(),
+      },
+    });
+
+    const checkoutUrl = buildStripeLinkCheckoutUrl(pendingPayment.id);
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+
+    res.json({
+      success: true,
+      paymentId: pendingPayment.id,
+      checkoutUrl,
+      agentId: agent.id,
+      agentName: agent.name,
+      successUrl: `${frontendUrl}/payment/success`,
+    });
+  } catch (error) {
+    console.error('Stripe link initiate error:', error);
+    res.status(500).json({ error: 'Failed to start Stripe checkout' });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /api/payments/stripe-link/complete
+// Demo: mark payment complete after user returns from Stripe Payment Link
+// ─────────────────────────────────────────────────────────────────────────────
+router.post('/stripe-link/complete', authenticateToken, async (req, res) => {
+  try {
+    if (!isStripePaymentLinkEnabled()) {
+      return res.status(403).json({ error: 'Stripe Payment Link is disabled' });
+    }
+
+    const { paymentId } = req.body;
+    if (!paymentId) {
+      return res.status(400).json({ error: 'paymentId is required' });
+    }
+
+    const payment = await Payment.findByPk(paymentId);
+    if (!payment) {
+      return res.status(404).json({ error: 'Payment not found' });
+    }
+
+    if (payment.payerId !== req.user.userId) {
+      return res.status(403).json({ error: 'Not your payment' });
+    }
+
+    const completed = await completePaymentRecord(payment, req.user.userId);
+
+    res.json({
+      success: true,
+      payment: completed,
+      agentId: completed.agentId,
+      hasAccess: true,
+    });
+  } catch (error) {
+    console.error('Stripe link complete error:', error);
+    res.status(500).json({ error: 'Failed to complete payment' });
   }
 });
 

@@ -1,50 +1,17 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/database');
+const createModel = require('./modelFactory');
 
-const User = sequelize.define('User', {
-  id: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
-    primaryKey: true,
-  },
-  walletAddress: {
-    type: DataTypes.STRING(64),
-    allowNull: false,
-    unique: true,
-  },
-  email: {
-    type: DataTypes.STRING,
-    allowNull: true,
-    unique: true,
-  },
-  username: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
-  password: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
-  avatarUrl: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
-  bio: {
-    type: DataTypes.TEXT,
-    allowNull: true,
-  },
-  totalEarnings: {
-    type: DataTypes.DECIMAL(18, 8),
-    allowNull: false,
-    defaultValue: 0,
-  },
-  reputationScore: {
-    type: DataTypes.FLOAT,
-    allowNull: false,
-    defaultValue: 0,
-  },
-}, {
-  tableName: 'users',
+const User = createModel('Users', {
+  id: { type: 'uuid', primaryKey: true },
+  walletAddress: { type: 'string', unique: true, required: true },
+  email: { type: 'string', unique: true },
+  username: { type: 'string' },
+  password: { type: 'string' },
+  avatarUrl: { type: 'string' },
+  bio: { type: 'text' },
+  totalEarnings: { type: 'decimal', default: 0 },
+  reputationScore: { type: 'float', default: 0 },
+  createdAt: { type: 'date' },
+  updatedAt: { type: 'date' },
 });
 
 module.exports = User;

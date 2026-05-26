@@ -3,6 +3,9 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { marketplace } from '@/lib/api';
+import { PageVideoBackground } from '@/components/layout/PageVideoBackground';
+import { MarketplaceNav } from '@/components/layout/MarketplaceNav';
+import { MARKETPLACE_LIST_VIDEO } from '@/lib/videos';
 
 const CATEGORIES = ['All', 'Research', 'Development', 'Content', 'Finance', 'Social'];
 
@@ -54,70 +57,84 @@ export default function MarketplacePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 to-slate-900 text-white">
-      <div className="max-w-7xl mx-auto px-4 py-12">
-        <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
-          Agent Marketplace
-        </h1>
-        <p className="text-slate-400 mb-10">Discover and purchase AI agents built by the community.</p>
+    <div className="relative min-h-screen bg-black text-white">
+      <PageVideoBackground src={MARKETPLACE_LIST_VIDEO} videoOpacity={0.5} scrimOpacity={0.75} />
+      <MarketplaceNav />
 
-        {/* Search */}
-        <form onSubmit={handleSearch} className="mb-8 flex gap-3">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 pt-28 pb-16">
+       <h1 className="font-heading italic text-white text-5xl md:text-6xl tracking-[-2px] mb-4">
+          Discover agents
+        </h1>
+        <p className="text-white/70 font-body font-light mb-10 max-w-2xl">
+          Browse, purchase, and run AI agents built by creators on ForkFlow.
+        </p>
+
+        <form onSubmit={handleSearch} className="mb-8 flex flex-wrap gap-3">
           <input
             type="text"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             placeholder="Search agents..."
-            className="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:border-blue-500 outline-none transition"
+            className="flex-1 min-w-[200px] liquid-glass rounded-full px-5 py-3 text-white placeholder:text-white/45 outline-none font-body"
           />
           <button
             type="submit"
-            className="rounded-xl bg-blue-500 px-6 py-3 font-semibold text-white hover:bg-blue-600 transition"
+            className="liquid-glass-strong rounded-full px-6 py-3 font-semibold text-white font-body"
           >
             Search
           </button>
           {search && (
             <button
               type="button"
-              onClick={() => { setSearch(''); setSearchInput(''); }}
-              className="rounded-xl border border-slate-600 px-4 py-3 text-slate-300 hover:bg-slate-800 transition"
+              onClick={() => {
+                setSearch('');
+                setSearchInput('');
+              }}
+              className="liquid-glass rounded-full px-5 py-3 text-white/90 font-body"
             >
               Clear
             </button>
           )}
         </form>
 
-        {/* Category filters */}
         <div className="mb-10 flex gap-3 flex-wrap">
-          {CATEGORIES.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setCategory(cat === 'All' ? null : cat.toLowerCase())}
-              className={`px-4 py-2 rounded-lg transition font-medium ${
-                (category === cat.toLowerCase() || (cat === 'All' && !category))
-                  ? 'bg-blue-500 text-white'
-                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-              }`}
-            >
-              {cat}
-            </button>
-          ))}
+          {CATEGORIES.map((cat) => {
+            const active = category === cat.toLowerCase() || (cat === 'All' && !category);
+            return (
+              <button
+                key={cat}
+                type="button"
+                onClick={() => setCategory(cat === 'All' ? null : cat.toLowerCase())}
+                className={`px-4 py-2 rounded-full font-medium font-body transition ${
+                  active ? 'liquid-glass-strong text-white' : 'liquid-glass text-white/75 hover:text-white'
+                }`}
+              >
+                {cat}
+              </button>
+            );
+          })}
         </div>
 
-        {/* Grid */}
         {loading ? (
           <div className="grid md:grid-cols-3 gap-6">
             {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="bg-slate-800 rounded-2xl h-64 animate-pulse border border-slate-700" />
+              <div key={i} className="glass-card h-64 animate-pulse flex flex-col">
+                <div className="glass-card-header h-28 shrink-0" />
+                <div className="glass-card-body flex-1" />
+              </div>
             ))}
           </div>
         ) : agents.length === 0 ? (
-          <div className="text-center py-20">
-            <p className="text-slate-400 text-lg">No agents found.</p>
+          <div className="liquid-glass rounded-[1.25rem] p-12 text-center">
+            <p className="text-white/70 font-body text-lg">No agents found.</p>
             {search && (
               <button
-                onClick={() => { setSearch(''); setSearchInput(''); }}
-                className="mt-4 text-blue-400 hover:underline"
+                type="button"
+                onClick={() => {
+                  setSearch('');
+                  setSearchInput('');
+                }}
+                className="mt-4 text-white underline font-body text-sm"
               >
                 Clear search
               </button>
@@ -129,30 +146,32 @@ export default function MarketplacePage() {
               <Link
                 key={agent.id}
                 href={`/marketplace/${agent.id}`}
-                className="bg-slate-800 rounded-2xl overflow-hidden border border-slate-700 hover:border-blue-500 transition group flex flex-col"
+                className="glass-card flex flex-col hover:opacity-95 transition group"
               >
-                <div className="bg-gradient-to-r from-blue-500 to-purple-500 h-36 group-hover:opacity-80 transition flex items-center justify-center">
-                  <span className="text-4xl">🤖</span>
+                <div className="glass-card-header h-28 flex items-center justify-center shrink-0">
+                  <span className="font-heading  text-5xl text-white/90">
+                  🤖
+                  </span>
                 </div>
-                <div className="p-5 flex flex-col flex-1">
+                <div className="glass-card-body p-5 flex flex-col flex-1">
                   <div className="flex items-start justify-between gap-2 mb-2">
-                    <h3 className="text-lg font-bold leading-tight">{agent.name}</h3>
-                    <span className="shrink-0 rounded-full bg-slate-700 px-2 py-0.5 text-xs text-slate-300 capitalize">
+                    <h3 className="font-body font-semibold leading-tight text-white">{agent.name}</h3>
+                    <span className="shrink-0 rounded-full border border-white/20 bg-white/10 px-2.5 py-0.5 text-[11px] text-white/90 capitalize font-body backdrop-blur-sm">
                       {agent.category}
                     </span>
                   </div>
-                  <p className="text-slate-400 text-sm mb-4 flex-1 line-clamp-2">{agent.description}</p>
+                  <p className="text-white/65 text-sm mb-4 flex-1 line-clamp-2 font-body font-light">
+                    {agent.description}
+                  </p>
                   <div className="flex justify-between items-center mt-auto">
-                    <span className="text-blue-400 font-semibold">{getPriceDisplay(agent)}</span>
-                    <div className="flex items-center gap-3 text-sm text-slate-400">
+                    <span className="font-heading italic text-xl text-white">{getPriceDisplay(agent)}</span>
+                    <div className="flex items-center gap-3 text-xs text-white/60 font-body">
                       <span>⭐ {parseFloat(agent.ratings || 0).toFixed(1)}</span>
                       <span>↓ {agent.downloads || 0}</span>
                     </div>
                   </div>
                   {agent.creator?.username && (
-                    <p className="mt-2 text-xs text-slate-500">
-                      by {agent.creator.username}
-                    </p>
+                    <p className="mt-2 text-xs text-white/45 font-body">by {agent.creator.username}</p>
                   )}
                 </div>
               </Link>

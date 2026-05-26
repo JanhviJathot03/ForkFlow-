@@ -2,9 +2,16 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
-import { agents as agentsApi, payments, execute, reviews as reviewsApi, ai } from '@/lib/api';
+import { agents as agentsApi, payments, execute, reviews as reviewsApi, ai, formatApiError } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 import { BuyRentModal } from '@/components/payments/BuyRentModal';
+import {
+  clearPendingStripePayment,
+  getPendingStripePayment,
+} from '@/lib/stripePayment';
+import { PageVideoBackground } from '@/components/layout/PageVideoBackground';
+import { MarketplaceNav } from '@/components/layout/MarketplaceNav';
+import { MARKETPLACE_AGENT_VIDEO } from '@/lib/videos';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface Agent {
@@ -63,7 +70,7 @@ function StarRating({ value, onChange }: { value: number; onChange?: (v: number)
           onMouseEnter={() => onChange && setHover(star)}
           onMouseLeave={() => onChange && setHover(0)}
           className={`text-2xl transition ${
-            star <= (hover || value) ? 'text-yellow-400' : 'text-slate-600'
+            star <= (hover || value) ? 'text-yellow-400' : 'text-white/25'
           } ${onChange ? 'cursor-pointer hover:scale-110' : 'cursor-default'}`}
         >
           ★
@@ -87,7 +94,6 @@ export default function AgentDetailPage() {
   const [buyRentModalOpen, setBuyRentModalOpen] = useState(false);
 
   // Payment state
-  const [paymentLoading, setPaymentLoading] = useState(false);
   const [paymentNotice, setPaymentNotice] = useState<string | null>(null);
 
   // Chat state
@@ -96,7 +102,9 @@ export default function AgentDetailPage() {
   const [chatLoading, setChatLoading] = useState(false);
   const [chatError, setChatError] = useState<string | null>(null);
   const [aiProvider, setAiProvider] = useState<string | null>(null);
+  const [backendOffline, setBackendOffline] = useState(false);
   const chatBottomRef = useRef<HTMLDivElement>(null);
+  const pendingPaymentHandled = useRef(false);
 
   // Reviews state
   const [reviewList, setReviewList] = useState<Review[]>([]);
@@ -140,9 +148,14 @@ export default function AgentDetailPage() {
   }, [id]);
 
   useEffect(() => {
+    const apiRoot =
+      process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/?$/, '') ?? 'http://127.0.0.1:5000';
+    fetch(`${apiRoot}/health`)
+      .then((r) => setBackendOffline(!r.ok))
+      .catch(() => setBackendOffline(true));
+
     loadAgent();
     loadReviews();
-    // Check AI provider status
     ai.status().then((r) => setAiProvider(r.data.provider)).catch(() => setAiProvider('unknown'));
   }, [loadAgent, loadReviews]);
 
@@ -150,10 +163,36 @@ export default function AgentDetailPage() {
     checkAccess();
   }, [checkAccess]);
 
-  // ── Handle Stripe return ─────────────────────────────────────────────────
+  // ── Unlock access after Stripe Payment Link (demo) ───────────────────────
   useEffect(() => {
+    if (!user || pendingPaymentHandled.current) return;
+
+    const pending = getPendingStripePayment();
     const paymentStatus = searchParams.get('payment');
     const sessionId = searchParams.get('session_id');
+
+    const completeStripeLink = (paymentId: string) => {
+      pendingPaymentHandled.current = true;
+      setPaymentNotice('Confirming your payment...');
+      payments
+        .stripeLinkComplete(paymentId)
+        .then(() => {
+          clearPendingStripePayment();
+          setPaymentNotice('Payment confirmed! You can use this agent now.');
+          setHasAccess(true);
+          setAccessVia('purchase');
+          checkAccess();
+        })
+        .catch(() => {
+          pendingPaymentHandled.current = false;
+          setPaymentNotice('Could not confirm payment. Refresh the page or try again.');
+        });
+    };
+
+    if (pending?.agentId === id) {
+      completeStripeLink(pending.paymentId);
+      return;
+    }
 
     if (paymentStatus === 'success' && sessionId) {
       setPaymentNotice('Verifying payment...');
@@ -162,53 +201,20 @@ export default function AgentDetailPage() {
           setPaymentNotice('Payment confirmed! You now have access to this agent.');
           setHasAccess(true);
           setAccessVia('purchase');
+          checkAccess();
         } else {
           setPaymentNotice('Payment is still processing. Refresh in a moment.');
         }
       }).catch(() => {
         setPaymentNotice('Could not verify payment. Contact support if you were charged.');
       });
+    } else if (paymentStatus === 'success') {
+      setPaymentNotice('Payment received! If chat is locked, refresh this page.');
+      checkAccess();
     } else if (paymentStatus === 'cancelled') {
       setPaymentNotice('Payment cancelled. No charge was made.');
     }
-  }, [searchParams]);
-
-  // ── Payment handlers ─────────────────────────────────────────────────────
-  const handleStripeCheckout = async () => {
-    if (!user) return alert('Please log in first.');
-    if (!agent) return;
-    setPaymentLoading(true);
-    try {
-      const res = await payments.stripeCreateSession({
-        agentId: agent.id,
-        paymentType: agent.pricingModel,
-      });
-      window.location.href = res.data.checkoutUrl;
-    } catch (err: any) {
-      alert(err?.response?.data?.error || 'Failed to start checkout. Is Stripe configured?');
-    } finally {
-      setPaymentLoading(false);
-    }
-  };
-
-  const handleManualPayment = async () => {
-    if (!user) return alert('Please log in first.');
-    if (!agent) return;
-    setPaymentLoading(true);
-    try {
-      const res = await payments.manualInitiate({
-        agentId: agent.id,
-        amount: getPrice(agent),
-        paymentType: agent.pricingModel,
-      });
-      // Redirect to the dedicated checkout page
-      router.push(`/checkout/${res.data.paymentId}`);
-    } catch {
-      alert('Failed to initiate payment.');
-    } finally {
-      setPaymentLoading(false);
-    }
-  };
+  }, [searchParams, user, id, checkAccess]);
 
   // Auto-scroll chat to bottom when messages change
   useEffect(() => {
@@ -234,10 +240,8 @@ export default function AgentDetailPage() {
     try {
       const res = await execute.chat(id, newMessages);
       setMessages([...newMessages, { role: 'assistant', content: res.data.reply }]);
-    } catch (err: any) {
-      const msg = err?.response?.data?.error || 'Something went wrong.';
-      setChatError(msg);
-      // Remove the user message we optimistically added if it failed
+    } catch (err: unknown) {
+      setChatError(formatApiError(err, 'Chat failed. Is the backend running on port 5000?'));
       setMessages(messages);
     } finally {
       setChatLoading(false);
@@ -266,18 +270,24 @@ export default function AgentDetailPage() {
   // ── Render ───────────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center">
-        <p className="text-slate-400">Loading agent...</p>
+      <div className="relative min-h-screen bg-black text-white flex items-center justify-center">
+        <PageVideoBackground src={MARKETPLACE_AGENT_VIDEO} videoOpacity={0.2} scrimOpacity={0.75} />
+        <p className="relative z-10 text-white/70 font-body">Loading agent...</p>
       </div>
     );
   }
 
   if (!agent) {
     return (
-      <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-2xl font-bold mb-2">Agent not found</p>
-          <button onClick={() => router.push('/marketplace')} className="text-blue-400 hover:underline">
+      <div className="relative min-h-screen bg-black text-white flex items-center justify-center">
+        <PageVideoBackground src={MARKETPLACE_AGENT_VIDEO} videoOpacity={0.2} scrimOpacity={0.75} />
+        <div className="relative z-10 text-center liquid-glass rounded-[1.25rem] p-10">
+          <p className="font-heading italic text-3xl mb-4">Agent not found</p>
+          <button
+            type="button"
+            onClick={() => router.push('/marketplace')}
+            className="text-white/80 hover:text-white underline font-body text-sm"
+          >
             Back to marketplace
           </button>
         </div>
@@ -291,14 +301,23 @@ export default function AgentDetailPage() {
   const canAccess = hasAccess || isFree || isCreator;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-purple-950 text-white">
-      <div className="mx-auto max-w-6xl px-4 py-14">
+    <div className="relative min-h-screen bg-black text-white">
+      <PageVideoBackground src={MARKETPLACE_AGENT_VIDEO} videoOpacity={0.2} scrimOpacity={0.75} />
+      <MarketplaceNav />
 
-        {/* Payment notice banner */}
+      <div className="relative z-10 mx-auto max-w-6xl px-4 pt-28 pb-16">
+
+        {backendOffline && (
+          <div className="mb-6 liquid-glass rounded-[1.25rem] border border-red-400/30 px-6 py-4 text-sm text-red-200 font-body">
+            Backend is not running. Open a terminal, run{' '}
+            <code className="text-red-100">cd backend &amp;&amp; npm run dev</code>, then refresh this page.
+          </div>
+        )}
+
         {paymentNotice && (
-          <div className="mb-6 rounded-2xl border border-blue-500/40 bg-blue-500/10 px-6 py-4 text-sm text-blue-100 flex justify-between items-center">
+          <div className="mb-6 liquid-glass rounded-[1.25rem] border border-white/20 px-6 py-4 text-sm text-white/90 flex justify-between items-center font-body">
             <span>{paymentNotice}</span>
-            <button onClick={() => setPaymentNotice(null)} className="text-blue-300 hover:text-white ml-4">✕</button>
+            <button type="button" onClick={() => setPaymentNotice(null)} className="text-white/60 hover:text-white ml-4">✕</button>
           </div>
         )}
 
@@ -306,47 +325,55 @@ export default function AgentDetailPage() {
 
           {/* ── Left: Agent info ─────────────────────────────────────────── */}
           <div className="space-y-6">
-            <section className="rounded-[2rem] border border-slate-800 bg-slate-900/70 p-8 shadow-2xl shadow-slate-950/40">
-              <div className="mb-4 flex items-center gap-3">
-                <span className="inline-flex rounded-full border border-blue-500/30 bg-blue-500/10 px-4 py-1 text-sm text-blue-300 capitalize">
+            <section className="liquid-glass rounded-[1.25rem] p-8">
+              <div className="mb-4 flex items-center gap-3 flex-wrap">
+                <span className="liquid-glass-strong rounded-full px-4 py-1 text-sm text-white capitalize font-body">
                   {agent.category}
                 </span>
                 {agent.pricingModel !== 'purchase' && (
-                  <span className="inline-flex rounded-full border border-purple-500/30 bg-purple-500/10 px-4 py-1 text-sm text-purple-300 capitalize">
+                  <span className="liquid-glass rounded-full px-4 py-1 text-sm text-white/85 capitalize font-body">
                     {agent.pricingModel.replace('_', ' ')}
                   </span>
                 )}
               </div>
 
-              <h1 className="text-4xl font-bold">{agent.name}</h1>
-              <p className="mt-4 text-lg leading-8 text-slate-300">{agent.description}</p>
+              <h1 className="font-heading italic text-4xl md:text-5xl tracking-[-1px] text-white">{agent.name}</h1>
+              <p className="mt-4 text-lg leading-8 text-white/75 font-body font-light">{agent.description}</p>
 
               <div className="mt-6 grid gap-4 sm:grid-cols-3">
-                <div className="rounded-2xl border border-slate-800 bg-slate-950/50 p-4">
-                  <p className="text-sm text-slate-400">Creator</p>
-                  <p className="mt-1 font-medium truncate">
-                    {agent.creator?.username || agent.creator?.walletAddress?.slice(0, 10) + '...' || 'Unknown'}
+                <div className="liquid-glass-strong rounded-[1rem] p-4">
+                  <p className="text-sm text-white/55 font-body">Creator</p>
+                  <p className="mt-1 font-medium truncate font-body text-white">
+                    {agent.creator?.username ||
+                      (agent.creator?.walletAddress
+                        ? `${agent.creator.walletAddress.slice(0, 8)}…`
+                        : 'Unknown')}
                   </p>
                 </div>
-                <div className="rounded-2xl border border-slate-800 bg-slate-950/50 p-4">
-                  <p className="text-sm text-slate-400">Rating</p>
-                  <p className="mt-1 font-medium">
+                <div className="liquid-glass-strong rounded-[1rem] p-4">
+                  <p className="text-sm text-white/55 font-body">Rating</p>
+                  <p className="mt-1 font-medium font-body text-white">
                     ⭐ {parseFloat(String(agent.ratings || 0)).toFixed(1)} / 5
-                    {reviewStats && <span className="text-slate-500 text-sm ml-1">({reviewStats.totalReviews})</span>}
+                    {reviewStats && (
+                      <span className="text-white/50 text-sm ml-1">({reviewStats.totalReviews})</span>
+                    )}
                   </p>
                 </div>
-                <div className="rounded-2xl border border-slate-800 bg-slate-950/50 p-4">
-                  <p className="text-sm text-slate-400">Downloads</p>
-                  <p className="mt-1 font-medium">{agent.downloads || 0}</p>
+                <div className="liquid-glass-strong rounded-[1rem] p-4">
+                  <p className="text-sm text-white/55 font-body">Downloads</p>
+                  <p className="mt-1 font-medium font-body text-white">{agent.downloads || 0}</p>
                 </div>
               </div>
 
               {agent.features?.length > 0 && (
                 <div className="mt-6">
-                  <h2 className="text-lg font-semibold mb-3">Features</h2>
+                  <h2 className="text-lg font-semibold mb-3 font-body text-white">Features</h2>
                   <div className="flex flex-wrap gap-2">
                     {agent.features.map((f) => (
-                      <span key={f} className="rounded-full border border-slate-700 bg-slate-950/60 px-4 py-1.5 text-sm text-slate-300">
+                      <span
+                        key={f}
+                        className="liquid-glass rounded-full px-4 py-1.5 text-sm text-white/85 font-body"
+                      >
                         {f}
                       </span>
                     ))}
@@ -356,33 +383,35 @@ export default function AgentDetailPage() {
             </section>
 
             {/* ── Chat with Agent ───────────────────────────────────────── */}
-            <section className="rounded-[2rem] border border-slate-800 bg-slate-900/70 overflow-hidden">
-              {/* Header */}
-              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800">
+            <section className="liquid-glass rounded-[1.25rem] overflow-hidden">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-sm font-bold">
+                  <div className="w-8 h-8 rounded-full liquid-glass-strong flex items-center justify-center text-sm font-bold font-heading italic">
                     {agent.name[0]}
                   </div>
                   <div>
-                    <p className="font-semibold text-sm">{agent.name}</p>
-                    <p className="text-xs text-slate-400 capitalize">{agent.category} agent</p>
+                    <p className="font-semibold text-sm font-body text-white">{agent.name}</p>
+                    <p className="text-xs text-white/50 capitalize font-body">{agent.category} agent</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   {aiProvider && (
-                    <span className={`text-xs px-2.5 py-1 rounded-full font-medium border ${
-                      aiProvider === 'groq'   ? 'bg-green-500/20 text-green-300 border-green-500/30' :
-                      aiProvider === 'openai' ? 'bg-green-500/20 text-green-300 border-green-500/30' :
-                      aiProvider === 'ollama' ? 'bg-blue-500/20 text-blue-300 border-blue-500/30' :
-                                               'bg-yellow-500/20 text-yellow-300 border-yellow-500/30'
-                    }`}>
+                    <span
+                      className={`text-xs px-2.5 py-1 rounded-full font-medium font-body liquid-glass ${
+                        aiProvider === 'fallback' ? 'text-yellow-300' : 'text-green-300'
+                      }`}
+                    >
                       {aiProvider === 'fallback' ? '⚠ No AI' : `✓ ${aiProvider}`}
                     </span>
                   )}
                   {messages.length > 0 && (
                     <button
-                      onClick={() => { setMessages([]); setChatError(null); }}
-                      className="text-xs text-slate-500 hover:text-slate-300 transition px-2 py-1 rounded-lg hover:bg-slate-800"
+                      type="button"
+                      onClick={() => {
+                        setMessages([]);
+                        setChatError(null);
+                      }}
+                      className="text-xs text-white/50 hover:text-white transition px-2 py-1 rounded-lg font-body"
                     >
                       Clear
                     </button>
@@ -394,28 +423,31 @@ export default function AgentDetailPage() {
               <div className="h-[420px] overflow-y-auto px-5 py-4 space-y-4 scroll-smooth">
                 {!user ? (
                   <div className="h-full flex items-center justify-center">
-                    <p className="text-slate-500 text-sm text-center">
-                      <a href="/login" className="text-blue-400 hover:underline">Log in</a> to chat with this agent.
+                    <p className="text-white/55 text-sm text-center font-body">
+                      <a href="/login" className="text-white hover:underline">
+                        Log in
+                      </a>{' '}
+                      to chat with this agent.
                     </p>
                   </div>
                 ) : !canAccess ? (
                   <div className="h-full flex items-center justify-center">
                     <div className="text-center space-y-2">
                       <p className="text-4xl">🔒</p>
-                      <p className="text-slate-400 text-sm">Purchase this agent to start chatting.</p>
+                      <p className="text-white/55 text-sm font-body">Purchase this agent to start chatting.</p>
                     </div>
                   </div>
                 ) : messages.length === 0 ? (
                   <div className="h-full flex flex-col items-center justify-center gap-3">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-xl">
+                    <div className="w-12 h-12 rounded-full liquid-glass-strong flex items-center justify-center text-xl">
                       {agent.category === 'research' ? '🔬' :
                        agent.category === 'development' ? '💻' :
                        agent.category === 'content' ? '✍️' :
                        agent.category === 'finance' ? '📈' :
                        agent.category === 'social' ? '📱' : '🤖'}
                     </div>
-                    <p className="font-semibold text-slate-200">{agent.name}</p>
-                    <p className="text-slate-500 text-sm text-center max-w-xs">
+                    <p className="font-semibold text-white font-body">{agent.name}</p>
+                    <p className="text-white/55 text-sm text-center max-w-xs font-body font-light">
                       {agent.category === 'research' ? 'Ask me to research any topic, summarize papers, or find information.' :
                        agent.category === 'development' ? 'Ask me to write code, debug issues, or explain technical concepts.' :
                        agent.category === 'content' ? 'Ask me to write copy, brainstorm ideas, or edit your content.' :
@@ -434,19 +466,21 @@ export default function AgentDetailPage() {
                     {messages.map((msg, i) => (
                       <div key={i} className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                         {msg.role === 'assistant' && (
-                          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">
+                          <div className="w-7 h-7 rounded-full liquid-glass-strong flex items-center justify-center text-xs font-bold shrink-0 mt-0.5 font-heading italic">
                             {agent.name[0]}
                           </div>
                         )}
-                        <div className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
-                          msg.role === 'user'
-                            ? 'bg-blue-500 text-white rounded-br-sm'
-                            : 'bg-slate-800 text-slate-100 rounded-bl-sm'
-                        }`}>
+                        <div
+                          className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed font-body ${
+                            msg.role === 'user'
+                              ? 'liquid-glass-strong text-white rounded-br-sm'
+                              : 'liquid-glass text-white/95 rounded-bl-sm'
+                          }`}
+                        >
                           <pre className="whitespace-pre-wrap font-sans">{msg.content}</pre>
                         </div>
                         {msg.role === 'user' && (
-                          <div className="w-7 h-7 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">
+                          <div className="w-7 h-7 rounded-full liquid-glass flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">
                             U
                           </div>
                         )}
@@ -456,21 +490,21 @@ export default function AgentDetailPage() {
                     {/* Typing indicator */}
                     {chatLoading && (
                       <div className="flex gap-3 justify-start">
-                        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-xs font-bold shrink-0">
+                        <div className="w-7 h-7 rounded-full liquid-glass-strong flex items-center justify-center text-xs font-bold shrink-0 font-heading italic">
                           {agent.name[0]}
                         </div>
-                        <div className="bg-slate-800 rounded-2xl rounded-bl-sm px-4 py-3">
+                        <div className="liquid-glass rounded-2xl rounded-bl-sm px-4 py-3">
                           <div className="flex gap-1 items-center h-4">
-                            <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                            <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                            <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                            <span className="w-2 h-2 bg-white/50 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                            <span className="w-2 h-2 bg-white/50 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                            <span className="w-2 h-2 bg-white/50 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                           </div>
                         </div>
                       </div>
                     )}
 
                     {chatError && (
-                      <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+                      <div className="liquid-glass rounded-xl border border-red-400/30 px-4 py-3 text-sm text-red-200 font-body">
                         {chatError}
                       </div>
                     )}
@@ -484,7 +518,7 @@ export default function AgentDetailPage() {
               {user && canAccess && (
                 <form
                   onSubmit={handleChat}
-                  className="border-t border-slate-800 px-4 py-3 flex gap-3 items-end"
+                  className="border-t border-white/10 px-4 py-3 flex gap-3 items-end"
                 >
                   <textarea
                     value={chatInput}
@@ -498,13 +532,13 @@ export default function AgentDetailPage() {
                     rows={1}
                     placeholder={`Message ${agent.name}...`}
                     disabled={chatLoading}
-                    className="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:border-blue-500 outline-none transition resize-none disabled:opacity-60"
+                    className="flex-1 liquid-glass rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-white/40 outline-none transition resize-none disabled:opacity-60 font-body"
                     style={{ minHeight: '42px', maxHeight: '120px' }}
                   />
                   <button
                     type="submit"
                     disabled={chatLoading || !chatInput.trim()}
-                    className="shrink-0 w-10 h-10 rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                    className="shrink-0 w-10 h-10 rounded-xl liquid-glass-strong flex items-center justify-center text-white hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition"
                   >
                     {chatLoading ? (
                       <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -519,62 +553,63 @@ export default function AgentDetailPage() {
             </section>
 
             {/* ── Reviews ───────────────────────────────────────────────── */}
-            <section className="rounded-[2rem] border border-slate-800 bg-slate-900/70 p-8">
+            <section className="liquid-glass rounded-[1.25rem] p-8">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold">Reviews</h2>
+                <h2 className="text-xl font-semibold font-body text-white">Reviews</h2>
                 {reviewStats && (
                   <div className="flex items-center gap-2">
                     <StarRating value={Math.round(reviewStats.averageRating)} />
-                    <span className="text-slate-400 text-sm">
+                    <span className="text-white/55 text-sm font-body">
                       {reviewStats.averageRating.toFixed(1)} ({reviewStats.totalReviews})
                     </span>
                   </div>
                 )}
               </div>
 
-              {/* Submit review form */}
               {user && canAccess && (
-                <form onSubmit={handleReviewSubmit} className="mb-8 rounded-xl border border-slate-700 bg-slate-950/50 p-5 space-y-4">
-                  <p className="text-sm font-semibold text-slate-300">Leave a review</p>
+                <form onSubmit={handleReviewSubmit} className="mb-8 liquid-glass-strong rounded-xl p-5 space-y-4">
+                  <p className="text-sm font-semibold text-white/90 font-body">Leave a review</p>
                   <StarRating value={reviewRating} onChange={setReviewRating} />
                   <textarea
                     value={reviewComment}
                     onChange={(e) => setReviewComment(e.target.value)}
                     rows={3}
                     placeholder="Share your experience (optional)..."
-                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:border-blue-500 outline-none transition resize-none text-sm"
+                    className="w-full liquid-glass rounded-xl px-4 py-3 text-white placeholder:text-white/40 outline-none transition resize-none text-sm font-body"
                   />
-                  {reviewError && <p className="text-red-400 text-sm">{reviewError}</p>}
+                  {reviewError && <p className="text-red-300 text-sm font-body">{reviewError}</p>}
                   <button
                     type="submit"
                     disabled={reviewLoading || !reviewRating}
-                    className="rounded-xl bg-blue-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-600 disabled:opacity-60 disabled:cursor-not-allowed transition"
+                    className="rounded-full liquid-glass-strong px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60 disabled:cursor-not-allowed transition font-body"
                   >
                     {reviewLoading ? 'Submitting...' : 'Submit Review'}
                   </button>
                 </form>
               )}
 
-              {/* Review list */}
               {reviewList.length === 0 ? (
-                <p className="text-slate-500 text-sm">No reviews yet. Be the first!</p>
+                <p className="text-white/55 text-sm font-body">No reviews yet. Be the first!</p>
               ) : (
                 <div className="space-y-4">
                   {reviewList.map((review) => (
-                    <div key={review.id} className="rounded-xl border border-slate-800 bg-slate-950/50 p-4">
+                    <div key={review.id} className="liquid-glass-strong rounded-xl p-4">
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-3">
                           <StarRating value={review.rating} />
-                          <span className="text-sm font-medium">
-                            {review.user?.username || review.user?.walletAddress?.slice(0, 10) + '...' || 'Anonymous'}
+                          <span className="text-sm font-medium font-body text-white">
+                            {review.user?.username ||
+                              (review.user?.walletAddress
+                                ? `${review.user.walletAddress.slice(0, 8)}…`
+                                : 'Anonymous')}
                           </span>
                         </div>
-                        <span className="text-xs text-slate-500">
+                        <span className="text-xs text-white/45 font-body">
                           {new Date(review.createdAt).toLocaleDateString()}
                         </span>
                       </div>
                       {review.comment && (
-                        <p className="text-sm text-slate-300 mt-1">{review.comment}</p>
+                        <p className="text-sm text-white/75 mt-1 font-body">{review.comment}</p>
                       )}
                     </div>
                   ))}
@@ -585,62 +620,64 @@ export default function AgentDetailPage() {
 
           {/* ── Right: Purchase sidebar ──────────────────────────────────── */}
           <aside className="space-y-5">
-            <div className="rounded-[2rem] border border-slate-800 bg-slate-900/80 p-6 sticky top-6">
-              <p className="text-sm uppercase tracking-[0.3em] text-slate-400">Pricing</p>
-              <p className="mt-3 text-4xl font-bold text-blue-400">{getPriceDisplay(agent)}</p>
-              <p className="mt-2 text-slate-400 text-sm capitalize">
+            <div className="liquid-glass rounded-[1.25rem] p-6 sticky top-24">
+              <p className="text-sm uppercase tracking-[0.3em] text-white/50 font-body">Pricing</p>
+              <p className="mt-3 font-heading italic text-4xl text-white">{getPriceDisplay(agent)}</p>
+              <p className="mt-2 text-white/60 text-sm capitalize font-body">
                 {agent.pricingModel.replace('_', ' ')} access
               </p>
 
               {canAccess ? (
-                <div className="mt-6 rounded-xl border border-green-500/30 bg-green-500/10 p-4 text-sm text-green-300">
+                <div className="mt-6 liquid-glass-strong rounded-xl p-4 text-sm text-green-300 font-body border border-green-400/20">
                   ✓ You have access to this agent.
-                  {accessVia && <span className="block text-xs text-green-400 mt-1">via {accessVia}</span>}
+                  {accessVia && <span className="block text-xs text-green-400/90 mt-1">via {accessVia}</span>}
                 </div>
               ) : !user ? (
                 <a
                   href="/login"
-                  className="mt-6 block w-full text-center rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 px-5 py-3 font-semibold text-white transition hover:opacity-90"
+                  className="mt-6 block w-full text-center rounded-full liquid-glass-strong px-5 py-3 font-semibold text-white transition hover:opacity-90 font-body"
                 >
                   Log in to Purchase
                 </a>
               ) : (
-                <d<button
-                    onClick={() => setBuyRentModalOpen(true)}
-                    disabled={paymentLoading}
-                    className="w-full rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 px-5 py-3 font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {paymentLoading ? 'Loading...' : '🛒 Buy or Rent Agent'}
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setBuyRentModalOpen(true)}
+                  className="mt-6 w-full rounded-full liquid-glass-strong px-5 py-3 font-semibold text-white transition hover:opacity-90 font-body"
+                >
+                  Pay with Stripe
+                </button>
               )}
             </div>
 
             {/* Buy/Rent Modal */}
-            {agent && (
-              <BuyRentModal
-                agent={agent}
-                isOpen={buyRentModalOpen}
-                onClose={() => setBuyRentModalOpen(false)}
-                onSuccess={() => {
-                  checkAccess();
-                  loadAgent();
-                }}
-              />
-              </div>
-              )}
-            </div>
+            <BuyRentModal
+              agent={agent}
+              isOpen={buyRentModalOpen}
+              onClose={() => setBuyRentModalOpen(false)}
+              onSuccess={() => {
+                checkAccess();
+                loadAgent();
+              }}
+            />
 
             {/* What happens next */}
-            <div className="rounded-[2rem] border border-slate-800 bg-slate-900/80 p-6">
-              <h2 className="text-lg font-semibold mb-4">What happens next</h2>
-              <ul className="space-y-3 text-sm text-slate-300">
-                <li className="flex gap-2"><span className="text-blue-400">1.</span> Click a payment button above.</li>
-                <li className="flex gap-2"><span className="text-blue-400">2.</span> Follow the payment instructions on the next page.</li>
-                <li className="flex gap-2"><span className="text-blue-400">3.</span> Click "I've Paid" — access unlocks after creator confirms.</li>
-                <li className="flex gap-2"><span className="text-blue-400">4.</span> Come back here to run the agent and leave a review.</li>
+            {/* <div className="liquid-glass rounded-[1.25rem] p-6">
+              <ul className="space-y-3 text-sm text-white/75 font-body font-light">
+                <li className="flex gap-2">
+                  <span className="text-white/90">1.</span> Click Pay with Stripe above.
+                </li>
+                <li className="flex gap-2">
+                  <span className="text-white/90">2.</span> Complete checkout on Stripe (test mode).
+                </li>
+                <li className="flex gap-2">
+                  <span className="text-white/90">3.</span> Return to this agent page — access unlocks automatically.
+                </li>
+                <li className="flex gap-2">
+                  <span className="text-white/90">4.</span> Chat with the agent and leave a review.
+                </li>
               </ul>
-            </div>
+            </div> */}
           </aside>
         </div>
       </div>

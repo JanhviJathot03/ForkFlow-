@@ -11,11 +11,15 @@
   "dependencies": {
     "@rainbow-me/rainbowkit": "^2.2.11",
     "axios": "^1.16.1",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
     "ethers": "^6.16.0",
+    "framer-motion": "^12.40.0",
     "next": "16.2.6",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "swr": "^2.4.1",
+    "tailwind-merge": "^3.6.0",
     "wagmi": "^2.9.0",
     "web3modal": "^1.9.12",
     "zustand": "^5.0.13"

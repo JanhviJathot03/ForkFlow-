@@ -299,6 +299,19 @@ router.get('/:id/access', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Agent not found' });
     }
 
+    if (agent.creatorId === userId) {
+      return res.json({ success: true, hasAccess: true, via: 'creator' });
+    }
+
+    const price = Math.max(
+      parseFloat(agent.purchasePrice || 0),
+      parseFloat(agent.monthlyCost || 0),
+      parseFloat(agent.payPerUsePrice || 0)
+    );
+    if (price === 0) {
+      return res.json({ success: true, hasAccess: true, via: 'free' });
+    }
+
     const completedPayment = await Payment.findOne({
       where: {
         agentId: id,

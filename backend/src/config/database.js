@@ -1,3 +1,22 @@
+// Using local in-memory storage instead of database
+// This is perfect for development without database setup
+
+const LocalStore = require('../services/localStorageService');
+
+// Mock Sequelize-like interface for compatibility
+const mockSequelize = {
+  authenticate: async () => {
+    console.log('✓ Local storage initialized');
+    return Promise.resolve();
+  },
+  sync: async () => {
+    console.log('✓ Local storage synced');
+    return Promise.resolve();
+  },
+};
+
+// This would have been the original Sequelize setup:
+/*
 const { Sequelize } = require('sequelize');
 
 function parseBoolean(value) {
@@ -53,5 +72,6 @@ function createSequelizeInstance() {
     port,
   });
 }
+*/
 
-module.exports = createSequelizeInstance();
+module.exports = mockSequelize;

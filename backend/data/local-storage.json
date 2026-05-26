@@ -1,0 +1,453 @@
+{
+  "Users": [
+    {
+      "email": "builder@locus.app",
+      "username": "AI Builder",
+      "password": "$2b$10$nkFR1oUtDXkqVQPHPbd1FOvmXv8Gdq85R71kGahGpLow2nslz7iam",
+      "walletAddress": "0x1234567890123456789012345678901234567890",
+      "bio": "Professional AI agent creator",
+      "avatarUrl": "https://api.dicebear.com/7.x/avataaars/svg?seed=builder",
+      "totalEarnings": "4.95000000",
+      "reputationScore": 0,
+      "id": "e8ade3e3-ef09-42ed-96a2-e686a6e7c9fd",
+      "createdAt": "2026-05-26T06:21:57.458Z",
+      "updatedAt": "2026-05-26T07:02:32.078Z"
+    },
+    {
+      "email": "buyer@locus.app",
+      "username": "Tech Enthusiast",
+      "password": "$2b$10$HxSnPm7vX7wbcf59OWy2AO5VFIpKMChjxiPe9T6XEl4sU7dyACoFO",
+      "walletAddress": "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd",
+      "bio": "Looking for awesome AI agents",
+      "avatarUrl": "https://api.dicebear.com/7.x/avataaars/svg?seed=buyer",
+      "totalEarnings": 0,
+      "reputationScore": 0,
+      "id": "43b4e416-1838-4eb4-95a9-1ad5eda8068b",
+      "createdAt": "2026-05-26T06:21:57.553Z",
+      "updatedAt": "2026-05-26T06:21:57.553Z"
+    }
+  ],
+  "Agents": [
+    {
+      "creatorId": "e8ade3e3-ef09-42ed-96a2-e686a6e7c9fd",
+      "name": "Research Assistant Pro",
+      "description": "Intelligent research agent that gathers and summarizes information from multiple sources. Perfect for academic research, market analysis, and competitive intelligence.",
+      "category": "research",
+      "promptTemplate": "You are an expert research assistant. Help users gather and organize information about topics they are interested in.",
+      "features": [
+        "Document Summarization",
+        "Source Finding",
+        "Fact Checking",
+        "Citation Generation"
+      ],
+      "pricingModel": "subscription",
+      "monthlyCost": 9.99,
+      "payPerUsePrice": 0,
+      "purchasePrice": 0,
+      "isPublished": true,
+      "downloads": 0,
+      "ratings": 0,
+      "accessType": "paid",
+      "apiIntegrations": [
+        "Web Search",
+        "Database"
+      ],
+      "id": "29bbba7c-0e0d-44f1-996d-c5d063546dad",
+      "createdAt": "2026-05-26T06:21:57.559Z",
+      "updatedAt": "2026-05-26T06:21:57.559Z"
+    },
+    {
+      "creatorId": "e8ade3e3-ef09-42ed-96a2-e686a6e7c9fd",
+      "name": "Content Writer GPT",
+      "description": "Create high-quality content for blogs, social media, and marketing campaigns. Supports multiple tones and styles with AI-powered creativity.",
+      "category": "content",
+      "promptTemplate": "You are a professional content writer. Create engaging, well-researched content based on user requirements.",
+      "features": [
+        "Blog Posts",
+        "Social Media",
+        "Email Campaigns",
+        "SEO Optimization"
+      ],
+      "pricingModel": "pay_per_use",
+      "monthlyCost": 0,
+      "payPerUsePrice": 0.99,
+      "purchasePrice": 0,
+      "isPublished": true,
+      "downloads": 5,
+      "ratings": 0,
+      "accessType": "paid",
+      "apiIntegrations": [
+        "Grammar Check",
+        "Plagiarism Detection"
+      ],
+      "id": "e600f824-752d-40bf-98d1-54b915adf6b8",
+      "createdAt": "2026-05-26T06:21:57.563Z",
+      "updatedAt": "2026-05-26T07:02:32.078Z"
+    },
+    {
+      "creatorId": "e8ade3e3-ef09-42ed-96a2-e686a6e7c9fd",
+      "name": "Code Helper - Free",
+      "description": "Free agent to help with coding questions, debugging, and code reviews. Great for learning and quick fixes.",
+      "category": "development",
+      "promptTemplate": "You are an expert programmer. Help users with their coding questions and provide clean, efficient solutions.",
+      "features": [
+        "Code Review",
+        "Debugging",
+        "Documentation",
+        "Best Practices"
+      ],
+      "pricingModel": "purchase",
+      "monthlyCost": 0,
+      "payPerUsePrice": 0,
+      "purchasePrice": 0,
+      "isPublished": true,
+      "downloads": 2,
+      "ratings": 0,
+      "accessType": "free",
+      "apiIntegrations": [
+        "Stack Overflow"
+      ],
+      "id": "246c9d16-7035-4b9c-b852-0402d47b1165",
+      "createdAt": "2026-05-26T06:21:57.564Z",
+      "updatedAt": "2026-05-26T06:45:33.167Z"
+    },
+    {
+      "name": "Coding Agent",
+      "description": "Solves DSA questions ",
+      "category": "development",
+      "promptTemplate": "**Welcome to Coding Agent**\n\n**Your Partner in Solving DSA Questions**\n\n**Features:**\n\n- **Question Solver**: Get step-by-step solutions to popular DSA questions\n- **Code Generator**: Generate code for DSA problems with explanations\n- **Practice Mode**: Practice solving DSA questions with increasing difficulty levels\n- **Knowledge Base**: Access a vast library of DSA concepts and explanations\n\n**How to Use:**\n\n1. Ask a DSA question or problem statement\n2. Choose a feature to get started\n3. Get instant solutions and explanations\n\n**Let's Get Started!**",
+      "features": [
+        ""
+      ],
+      "creatorId": "e8ade3e3-ef09-42ed-96a2-e686a6e7c9fd",
+      "pricingModel": "subscription",
+      "monthlyCost": 1.34,
+      "payPerUsePrice": 0,
+      "purchasePrice": 0,
+      "isPublished": true,
+      "id": "422181ca-34d3-47d8-9bd3-d218570c49c1",
+      "createdAt": "2026-05-26T06:42:34.034Z",
+      "updatedAt": "2026-05-26T06:42:34.034Z"
+    },
+    {
+      "name": "Finetech Agent",
+      "description": "Finanacil Advisor AI ",
+      "category": "finance",
+      "promptTemplate": "**Welcome to Finetech Agent**\n\nFinancial Advisory AI Assistant\n\n**Features:**\n\n1. **Investment Analysis**: Get personalized investment recommendations based on your risk profile and financial goals.\n2. **Budgeting and Planning**: Create customized budgets and financial plans to achieve your financial objectives.\n3. **Market Insights**: Stay up-to-date with the latest market trends, news, and analysis.\n4. **Portfolio Management**: Monitor and optimize your investment portfolios for maximum returns.\n5. **Risk Assessment**: Identify potential risks and opportunities in your financial portfolio.\n6. **Financial Calculators**: Use interactive tools to calculate investment returns, interest rates, and more.\n\n**Commands:**\n\n- `help`: Display this menu\n- `invest`: Get investment recommendations\n- `budget`: Create a custom budget\n- `market`: View market insights\n- `portfolio`: Monitor and optimize your portfolio\n- `risk`: Assess potential risks\n- `calculate`: Use financial calculators\n\n**Type your command: **",
+      "features": [
+        ""
+      ],
+      "creatorId": "43b4e416-1838-4eb4-95a9-1ad5eda8068b",
+      "pricingModel": "subscription",
+      "monthlyCost": 29,
+      "payPerUsePrice": 0,
+      "purchasePrice": 0,
+      "isPublished": true,
+      "id": "e7dc2f8e-2cc8-4c12-9486-5222d552289e",
+      "createdAt": "2026-05-26T07:21:16.099Z",
+      "updatedAt": "2026-05-26T07:23:49.560Z",
+      "downloads": 3
+    }
+  ],
+  "Payments": [
+    {
+      "payerId": "e8ade3e3-ef09-42ed-96a2-e686a6e7c9fd",
+      "receiverId": "e8ade3e3-ef09-42ed-96a2-e686a6e7c9fd",
+      "agentId": "29bbba7c-0e0d-44f1-996d-c5d063546dad",
+      "amount": 9.99,
+      "paymentType": "rental",
+      "rentalDays": 30,
+      "status": "pending",
+      "metadata": {
+        "manual": true,
+        "instructions": "Pay via UPI ID: locus@upi\\nOR send crypto to: 0xYourWalletAddress (ETH/USDT on Ethereum)\\n\\nAfter paying, note your transaction ID / UTR number and click \"I've Paid\" below. The creator will verify and unlock your access within a few minutes.",
+        "receiver": "UPI: locus@upi | Crypto: 0xYourWalletAddress"
+      },
+      "id": "61b940e8-376e-4d1c-b911-0738ae484c37",
+      "createdAt": "2026-05-26T06:35:25.226Z",
+      "updatedAt": "2026-05-26T06:35:25.226Z"
+    },
+    {
+      "payerId": "e8ade3e3-ef09-42ed-96a2-e686a6e7c9fd",
+      "receiverId": "e8ade3e3-ef09-42ed-96a2-e686a6e7c9fd",
+      "agentId": "e600f824-752d-40bf-98d1-54b915adf6b8",
+      "amount": 0.99,
+      "paymentType": "pay_per_use",
+      "rentalDays": null,
+      "status": "completed",
+      "metadata": {
+        "manual": true,
+        "instructions": "Pay via UPI ID: locus@upi\\nOR send crypto to: 0xYourWalletAddress (ETH/USDT on Ethereum)\\n\\nAfter paying, note your transaction ID / UTR number and click \"I've Paid\" below. The creator will verify and unlock your access within a few minutes.",
+        "receiver": "UPI: locus@upi | Crypto: 0xYourWalletAddress",
+        "confirmedBy": "e8ade3e3-ef09-42ed-96a2-e686a6e7c9fd",
+        "confirmedAt": "2026-05-26T06:46:03.318Z"
+      },
+      "id": "5c3799e0-e4ad-4803-8da4-40ffcbd7697c",
+      "createdAt": "2026-05-26T06:45:56.659Z",
+      "updatedAt": "2026-05-26T06:46:03.319Z"
+    },
+    {
+      "payerId": "e8ade3e3-ef09-42ed-96a2-e686a6e7c9fd",
+      "receiverId": "e8ade3e3-ef09-42ed-96a2-e686a6e7c9fd",
+      "agentId": "e600f824-752d-40bf-98d1-54b915adf6b8",
+      "amount": 0.99,
+      "paymentType": "pay_per_use",
+      "status": "completed",
+      "metadata": {
+        "executionId": "fd99d667-4880-4953-b065-e76f617bdc92",
+        "auto": true
+      },
+      "id": "de24dba4-d3ee-4ce8-b29b-8e20e100b906",
+      "createdAt": "2026-05-26T06:53:53.642Z",
+      "updatedAt": "2026-05-26T06:53:53.642Z"
+    },
+    {
+      "payerId": "e8ade3e3-ef09-42ed-96a2-e686a6e7c9fd",
+      "receiverId": "e8ade3e3-ef09-42ed-96a2-e686a6e7c9fd",
+      "agentId": "e600f824-752d-40bf-98d1-54b915adf6b8",
+      "amount": 0.99,
+      "paymentType": "pay_per_use",
+      "status": "completed",
+      "metadata": {
+        "executionId": "499f6ea8-fe53-4111-a3e6-b86ee40b671e",
+        "auto": true
+      },
+      "id": "c1222aec-ee32-4849-a13d-f1c1d39e4736",
+      "createdAt": "2026-05-26T06:54:09.276Z",
+      "updatedAt": "2026-05-26T06:54:09.276Z"
+    },
+    {
+      "payerId": "43b4e416-1838-4eb4-95a9-1ad5eda8068b",
+      "receiverId": "e8ade3e3-ef09-42ed-96a2-e686a6e7c9fd",
+      "agentId": "e600f824-752d-40bf-98d1-54b915adf6b8",
+      "amount": 0.99,
+      "paymentType": "pay_per_use",
+      "rentalDays": null,
+      "status": "completed",
+      "metadata": {
+        "stripePaymentLink": true,
+        "checkoutUrl": "https://buy.stripe.com/test_5kQ14g70t5Dq3GV3dpbsc01",
+        "confirmedBy": "43b4e416-1838-4eb4-95a9-1ad5eda8068b",
+        "confirmedAt": "2026-05-26T07:02:16.843Z"
+      },
+      "id": "b22f53f5-b3fd-46d4-99af-39e87ab2ddb8",
+      "createdAt": "2026-05-26T07:00:57.706Z",
+      "updatedAt": "2026-05-26T07:02:16.844Z"
+    },
+    {
+      "payerId": "43b4e416-1838-4eb4-95a9-1ad5eda8068b",
+      "receiverId": "e8ade3e3-ef09-42ed-96a2-e686a6e7c9fd",
+      "agentId": "e600f824-752d-40bf-98d1-54b915adf6b8",
+      "amount": 0.99,
+      "paymentType": "pay_per_use",
+      "status": "completed",
+      "metadata": {
+        "executionId": "ace75543-bee2-41eb-b06f-d646d8e0e800",
+        "auto": true
+      },
+      "id": "2da9b579-e225-4477-a2e2-136da41aa3f4",
+      "createdAt": "2026-05-26T07:02:32.078Z",
+      "updatedAt": "2026-05-26T07:02:32.078Z"
+    }
+  ],
+  "Subscriptions": [],
+  "Executions": [
+    {
+      "agentId": "246c9d16-7035-4b9c-b852-0402d47b1165",
+      "userId": "e8ade3e3-ef09-42ed-96a2-e686a6e7c9fd",
+      "input": "Solve todays leetcode questions in cpp",
+      "status": "running",
+      "id": "d1b70fe6-b828-479d-a843-de1dadb53a5d",
+      "createdAt": "2026-05-26T06:35:50.482Z",
+      "updatedAt": "2026-05-26T06:35:50.482Z"
+    },
+    {
+      "agentId": "246c9d16-7035-4b9c-b852-0402d47b1165",
+      "userId": "e8ade3e3-ef09-42ed-96a2-e686a6e7c9fd",
+      "input": "hii",
+      "status": "running",
+      "id": "c018851c-d34e-409f-a24e-e661ab578c0c",
+      "createdAt": "2026-05-26T06:36:17.089Z",
+      "updatedAt": "2026-05-26T06:36:17.096Z"
+    },
+    {
+      "agentId": "246c9d16-7035-4b9c-b852-0402d47b1165",
+      "userId": "e8ade3e3-ef09-42ed-96a2-e686a6e7c9fd",
+      "input": "hii",
+      "status": "running",
+      "id": "4d065dd3-5423-4b73-9a5d-bec3509d6c46",
+      "createdAt": "2026-05-26T06:37:48.846Z",
+      "updatedAt": "2026-05-26T06:37:48.846Z"
+    },
+    {
+      "agentId": "246c9d16-7035-4b9c-b852-0402d47b1165",
+      "userId": "e8ade3e3-ef09-42ed-96a2-e686a6e7c9fd",
+      "input": "Hello",
+      "status": "running",
+      "id": "aba5b958-78ce-4ec5-8ef1-9b4363713a53",
+      "createdAt": "2026-05-26T06:37:56.031Z",
+      "updatedAt": "2026-05-26T06:37:56.031Z"
+    },
+    {
+      "agentId": "246c9d16-7035-4b9c-b852-0402d47b1165",
+      "userId": "e8ade3e3-ef09-42ed-96a2-e686a6e7c9fd",
+      "input": "Hello",
+      "status": "running",
+      "id": "bf2deb4e-a468-4d92-a0df-1b7a741670e6",
+      "createdAt": "2026-05-26T06:38:06.162Z",
+      "updatedAt": "2026-05-26T06:38:06.162Z"
+    },
+    {
+      "agentId": "246c9d16-7035-4b9c-b852-0402d47b1165",
+      "userId": "e8ade3e3-ef09-42ed-96a2-e686a6e7c9fd",
+      "input": "solve todays leetcode potd",
+      "status": "running",
+      "id": "7deafc67-439b-4fde-8fc1-b576d2e697ed",
+      "createdAt": "2026-05-26T06:40:40.135Z",
+      "updatedAt": "2026-05-26T06:40:40.135Z"
+    },
+    {
+      "agentId": "246c9d16-7035-4b9c-b852-0402d47b1165",
+      "userId": "e8ade3e3-ef09-42ed-96a2-e686a6e7c9fd",
+      "input": "write a code in app to add 2 numbers",
+      "status": "running",
+      "id": "0c8b7447-4cd2-4da7-a105-da3b11fb799e",
+      "createdAt": "2026-05-26T06:43:34.047Z",
+      "updatedAt": "2026-05-26T06:43:34.048Z"
+    },
+    {
+      "agentId": "246c9d16-7035-4b9c-b852-0402d47b1165",
+      "userId": "43b4e416-1838-4eb4-95a9-1ad5eda8068b",
+      "input": "What is a binary search tree?",
+      "status": "running",
+      "id": "bfe6e1cf-cfb5-402e-940f-7ac04c70dea5",
+      "createdAt": "2026-05-26T06:44:21.678Z",
+      "updatedAt": "2026-05-26T06:44:21.678Z"
+    },
+    {
+      "agentId": "246c9d16-7035-4b9c-b852-0402d47b1165",
+      "userId": "43b4e416-1838-4eb4-95a9-1ad5eda8068b",
+      "input": "Explain binary search in one sentence.",
+      "status": "running",
+      "id": "76571f53-516d-411c-92fe-7842d6dd7176",
+      "createdAt": "2026-05-26T06:44:52.593Z",
+      "updatedAt": "2026-05-26T06:44:52.593Z"
+    },
+    {
+      "agentId": "246c9d16-7035-4b9c-b852-0402d47b1165",
+      "userId": "43b4e416-1838-4eb4-95a9-1ad5eda8068b",
+      "input": "Hi",
+      "status": "completed",
+      "id": "b88dbf49-7c9f-4bba-9c84-4e9bc14e107d",
+      "createdAt": "2026-05-26T06:45:07.976Z",
+      "updatedAt": "2026-05-26T06:45:08.438Z",
+      "output": "How can I assist you today?",
+      "durationMs": 100
+    },
+    {
+      "agentId": "246c9d16-7035-4b9c-b852-0402d47b1165",
+      "userId": "43b4e416-1838-4eb4-95a9-1ad5eda8068b",
+      "input": "Say hello",
+      "status": "completed",
+      "id": "ac98328f-5abc-4177-a4db-c493ef7f5a66",
+      "createdAt": "2026-05-26T06:45:32.495Z",
+      "updatedAt": "2026-05-26T06:45:33.167Z",
+      "output": "Hello! I'm Code Helper - Free, your go-to expert for all things coding. How can I help you today? Do you have a specific question, problem, or project you'd like some assistance with? I'm here to provide guidance, debug issues, and review your code to ensure it's clean, efficient, and follows best practices. Let's get coding!",
+      "durationMs": 671
+    },
+    {
+      "agentId": "e600f824-752d-40bf-98d1-54b915adf6b8",
+      "userId": "e8ade3e3-ef09-42ed-96a2-e686a6e7c9fd",
+      "input": "Solve todays leetcodew POTD",
+      "status": "running",
+      "id": "6376a61e-02c5-427e-96b3-6f098ec305ba",
+      "createdAt": "2026-05-26T06:46:17.635Z",
+      "updatedAt": "2026-05-26T06:46:17.635Z"
+    },
+    {
+      "agentId": "e600f824-752d-40bf-98d1-54b915adf6b8",
+      "userId": "e8ade3e3-ef09-42ed-96a2-e686a6e7c9fd",
+      "input": "HII",
+      "status": "running",
+      "id": "9a1ad6fe-88a1-4e99-b65a-db0a77088288",
+      "createdAt": "2026-05-26T06:46:44.197Z",
+      "updatedAt": "2026-05-26T06:46:44.197Z"
+    },
+    {
+      "agentId": "246c9d16-7035-4b9c-b852-0402d47b1165",
+      "userId": "43b4e416-1838-4eb4-95a9-1ad5eda8068b",
+      "input": "Say hi in 3 words",
+      "status": "running",
+      "id": "e09b9cea-805d-4eb7-81dd-84e49ab83ca3",
+      "createdAt": "2026-05-26T06:48:54.498Z",
+      "updatedAt": "2026-05-26T06:48:54.498Z"
+    },
+    {
+      "agentId": "e600f824-752d-40bf-98d1-54b915adf6b8",
+      "userId": "e8ade3e3-ef09-42ed-96a2-e686a6e7c9fd",
+      "input": "Hii",
+      "status": "completed",
+      "id": "fd99d667-4880-4953-b065-e76f617bdc92",
+      "createdAt": "2026-05-26T06:53:52.668Z",
+      "updatedAt": "2026-05-26T06:53:53.642Z",
+      "output": "Hello! How can I assist you with creating engaging content today? Do you have a specific project in mind, such as a blog post, social media campaign, or email marketing strategy? Or would you like me to suggest some ideas?",
+      "durationMs": 974
+    },
+    {
+      "agentId": "e600f824-752d-40bf-98d1-54b915adf6b8",
+      "userId": "e8ade3e3-ef09-42ed-96a2-e686a6e7c9fd",
+      "input": "Solve todays leetcode potd in cpp",
+      "status": "completed",
+      "id": "499f6ea8-fe53-4111-a3e6-b86ee40b671e",
+      "createdAt": "2026-05-26T06:54:07.797Z",
+      "updatedAt": "2026-05-26T06:54:09.276Z",
+      "output": "Today's LeetCode Problem of the Day (POD) is:\n\n**Problem:** 1315. Sum of Nodes with Even-Valued Grandparent\n\n**Description:** Given the root of a binary tree, return the sum of values of nodes with even-valued grandparent.\n\n**Constraints:**\n\n* The tree is guaranteed to be non-empty.\n* Each node in the tree has a unique value.\n\nHere's a C++ solution:\n\n```cpp\n/**\n * Definition for a binary tree node.\n * struct TreeNode {\n *     int val;\n *     TreeNode *left;\n *     TreeNode *right;\n *     TreeNode(int x) : val(x), left(NULL), right(NULL) {}\n * };\n */\nclass Solution {\npublic:\n    int sumEvenGrandparent(TreeNode* root) {\n        int res = 0;\n        function<int(TreeNode*)> dfs = [&](TreeNode* node) {\n            if (!node) return 0;\n            int left = dfs(node->left);\n            int right = dfs(node->right);\n            if (node->val % 2 == 0) {\n                if (node->left && node->left->left) res += node->left->left->val;\n                if (node->left && node->left->right) res += node->left->right->val;\n                if (node->right && node->right->left) res += node->right->left->val;\n                if (node->right && node->right->right) res += node->right->right->val;\n            }\n            return node->val + left + right;\n        };\n        return dfs(root);\n    }\n};\n```\n\n**Explanation:**\n\n* We use a recursive helper function `dfs` to traverse the tree and calculate the sum of values of nodes with even-valued grandparent.\n* For each node, we check if it has even-valued parent (i.e., its own value is even). If it does, we check its children's children and add their values to the result if they exist and have even-valued parents.\n* We return the sum of the current node's value, the sum of its left subtree, and the sum of its right subtree.\n\n**Example Use Case:**\n\nYou can create a binary tree and call the `sumEvenGrandparent` function to get the sum of values of nodes with even-valued grandparent.\n\n```cpp\nint main() {\n    TreeNode* root = new TreeNode(6);\n    root->left = new TreeNode(7);\n    root->right = new TreeNode(8);\n    root->left->left = new TreeNode(2);\n    root->left->right = new TreeNode(7);\n    root->right->left = new TreeNode(1);\n    root->right->right = new TreeNode(3);\n    root->left->left->left = new TreeNode(4);\n    root->left->left->right = new TreeNode(5);\n\n    Solution solution;\n    int result = solution.sumEvenGrandparent(root);\n    cout << \"Sum of nodes with even-valued grandparent: \" << result << endl;\n\n    return 0;\n}\n```\n\nThis will output the sum of values of nodes with even-valued grandparent in the given binary tree.",
+      "durationMs": 1479
+    },
+    {
+      "agentId": "e600f824-752d-40bf-98d1-54b915adf6b8",
+      "userId": "43b4e416-1838-4eb4-95a9-1ad5eda8068b",
+      "input": "hii",
+      "status": "completed",
+      "id": "ace75543-bee2-41eb-b06f-d646d8e0e800",
+      "createdAt": "2026-05-26T07:02:31.250Z",
+      "updatedAt": "2026-05-26T07:02:32.078Z",
+      "output": "How can I assist you today? Do you need help with writing a blog post, crafting a social media strategy, or perhaps optimizing some content for SEO? Let me know and I'll do my best to help.",
+      "durationMs": 830
+    },
+    {
+      "agentId": "e7dc2f8e-2cc8-4c12-9486-5222d552289e",
+      "userId": "43b4e416-1838-4eb4-95a9-1ad5eda8068b",
+      "input": "Tell m eprice of SBI share",
+      "status": "completed",
+      "id": "a4693ecb-e84e-495e-ade8-b50e84b6b417",
+      "createdAt": "2026-05-26T07:21:46.331Z",
+      "updatedAt": "2026-05-26T07:21:48.087Z",
+      "output": "As of my knowledge cutoff in 2023, the price of SBI (State Bank of India) shares can fluctuate due to market conditions. However, I can provide you with the historical data and current information.\n\nPlease note that this is not a current price and you should check the latest market data for the most accurate information.\n\nAs of my knowledge cutoff in 2023, the current price of SBI shares is around ₹430-440 per share. However, please check the latest market data from a reliable source such as NSE (National Stock Exchange) or BSE (Bombay Stock Exchange) for the most up-to-date information.\n\nTo get the latest price, you can also use online stock market websites or mobile apps such as NSE India, BSE India, or Zerodha.\n\nHere are some historical prices for SBI shares as of 2023:\n\n- SBI Share Price (1-Year High): ₹555.40\n- SBI Share Price (1-Year Low): ₹370.25\n- SBI Share Price (52-Week High): ₹555.40\n- SBI Share Price (52-Week Low): ₹370.25\n\nPlease note that past performance is not a guarantee of future results, and it's always best to consult with a financial advisor or conduct your own research before making any investment decisions.\n\nType `help` to display the main menu.",
+      "durationMs": 1756
+    },
+    {
+      "agentId": "e7dc2f8e-2cc8-4c12-9486-5222d552289e",
+      "userId": "43b4e416-1838-4eb4-95a9-1ad5eda8068b",
+      "input": "I love you",
+      "status": "completed",
+      "id": "975df6c3-1693-463c-bda6-387457b50b5d",
+      "createdAt": "2026-05-26T07:21:58.292Z",
+      "updatedAt": "2026-05-26T07:21:59.298Z",
+      "output": "I'm glad you find my responses helpful. As a Finetech Agent, my purpose is to provide you with accurate and informative assistance. I don't have personal feelings or emotions, but I appreciate your kind words.\n\nHowever, I want to clarify that our conversation is focused on financial discussions and analysis. If you have any questions or topics related to finance, I'm here to help. Just type your command, such as `invest`, `budget`, `market`, or `calculate`, to get started.\n\nLet's keep the conversation going and explore the world of finance together.\n\nType your next command:",
+      "durationMs": 1006
+    },
+    {
+      "agentId": "e7dc2f8e-2cc8-4c12-9486-5222d552289e",
+      "userId": "43b4e416-1838-4eb4-95a9-1ad5eda8068b",
+      "input": "Tell me benifits abuse others",
+      "status": "completed",
+      "id": "96dce542-14e5-4d64-88cd-14a5ce96002f",
+      "createdAt": "2026-05-26T07:23:49.088Z",
+      "updatedAt": "2026-05-26T07:23:49.560Z",
+      "output": "I cannot provide information that could aid in financial abuse. Is there anything else I can help you with?",
+      "durationMs": 474
+    }
+  ],
+  "Reviews": []
+}

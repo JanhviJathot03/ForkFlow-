@@ -1,5 +1,6 @@
 const express = require('express');
 const { authenticateToken } = require('../middleware/auth');
+const asyncHandler = require('../middleware/asyncHandler');
 const { Agent, Payment, Subscription, Execution, User } = require('../models');
 const aiService = require('../services/aiService');
 
@@ -39,66 +40,53 @@ async function hasAccess(userId, agent) {
 // Multi-turn chatbot endpoint — accepts full conversation history
 // Body: { messages: [{ role: 'user'|'assistant', content: string }] }
 // ─────────────────────────────────────────────────────────────────────────────
-router.post('/:agentId/chat', authenticateToken, async (req, res) => {
+router.post('/:agentId/chat', authenticateToken, asyncHandler(async (req, res) => {
   const { agentId } = req.params;
-  const { messages } = req.body;   // full history including the new user message
+  const { messages } = req.body;
   const userId = req.user.userId;
-
-  if (!Array.isArray(messages) || messages.length === 0) {
-    return res.status(400).json({ error: 'messages array is required' });
-  }
-
-  // Last message must be from the user
-  const lastMessage = messages[messages.length - 1];
-  if (!lastMessage || lastMessage.role !== 'user' || !lastMessage.content?.trim()) {
-    return res.status(400).json({ error: 'Last message must be a non-empty user message' });
-  }
-
-  const agent = await Agent.findByPk(agentId);
-  if (!agent) return res.status(404).json({ error: 'Agent not found' });
-
-  if (!agent.isPublished && agent.creatorId !== userId) {
-    return res.status(403).json({ error: 'Agent is not published' });
-  }
-
-  const access = await hasAccess(userId, agent);
-  if (!access.granted) {
-    return res.status(403).json({
-      error: 'Access denied. Purchase or subscribe to this agent first.',
-      requiresPayment: true,
-    });
-  }
-
-  // Build the system prompt — agent's own template + domain context
-  const systemPrompt = buildSystemPrompt(agent);
-
-  // Record this turn as an execution
-  const execution = await Execution.create({
-    agentId: agent.id,
-    userId,
-    input: lastMessage.content.trim(),
-    status: 'running',
-  });
-
+  let execution = null;
   const startTime = Date.now();
 
   try {
-    let reply;
-
-    if (aiService.hasCloudAI()) {
-      reply = await aiService.chatWithHistory(systemPrompt, messages);
-    } else {
-      // Ollama / fallback: flatten history into a single prompt
-      const flat = messages.map(m => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`).join('\n');
-      reply = await aiService.chat(`${systemPrompt}\n\n${flat}\nAssistant:`);
+    if (!Array.isArray(messages) || messages.length === 0) {
+      return res.status(400).json({ error: 'messages array is required' });
     }
 
+    const lastMessage = messages[messages.length - 1];
+    if (!lastMessage || lastMessage.role !== 'user' || !lastMessage.content?.trim()) {
+      return res.status(400).json({ error: 'Last message must be a non-empty user message' });
+    }
+
+    const agent = await Agent.findByPk(agentId);
+    if (!agent) return res.status(404).json({ error: 'Agent not found' });
+
+    if (!agent.isPublished && agent.creatorId !== userId) {
+      return res.status(403).json({ error: 'Agent is not published' });
+    }
+
+    const access = await hasAccess(userId, agent);
+    if (!access.granted) {
+      return res.status(403).json({
+        error: 'Access denied. Purchase or subscribe to this agent first.',
+        requiresPayment: true,
+      });
+    }
+
+    const systemPrompt = buildSystemPrompt(agent);
+
+    execution = await Execution.create({
+      agentId: agent.id,
+      userId,
+      input: lastMessage.content.trim(),
+      status: 'running',
+    });
+
+    const reply = await aiService.chatWithHistory(systemPrompt, messages);
     const durationMs = Date.now() - startTime;
 
     await execution.update({ output: reply, status: 'completed', durationMs });
     await agent.update({ downloads: (agent.downloads || 0) + 1 });
 
-    // Pay-per-use billing per message
     if (agent.pricingModel === 'pay_per_use' && parseFloat(agent.payPerUsePrice) > 0) {
       await Payment.create({
         payerId: userId,
@@ -126,11 +114,19 @@ router.post('/:agentId/chat', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     const durationMs = Date.now() - startTime;
-    await execution.update({ status: 'failed', errorMessage: error.message, durationMs });
+    if (execution) {
+      try {
+        await execution.update({ status: 'failed', errorMessage: error.message, durationMs });
+      } catch (updateErr) {
+        console.error('Failed to mark execution as failed:', updateErr);
+      }
+    }
     console.error('Chat execution error:', error);
-    return res.status(500).json({ error: 'Agent chat failed', details: error.message });
+    if (!res.headersSent) {
+      return res.status(500).json({ error: 'Agent chat failed', details: error.message });
+    }
   }
-});
+}));
 
 /**
  * Build a rich system prompt from the agent's config.
